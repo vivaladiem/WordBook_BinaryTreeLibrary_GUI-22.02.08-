@@ -1,0 +1,225 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "winres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// Korean (Korea) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_KOR)
+LANGUAGE LANG_KOREAN, SUBLANG_DEFAULT
+#pragma code_page(949)
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""winres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_WORDBOOKFORM DIALOGEX 0, 0, 391, 266
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "단어장"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "단어",IDC_STATIC_WORD,102,7,214,109
+    CTEXT           "철자",IDC_STATIC,109,23,24,8
+    LTEXT           "",IDC_STATIC_SPELLING,153,23,156,8
+    CTEXT           "뜻",IDC_STATIC,109,41,24,8
+    LTEXT           "",IDC_STATIC_MEANING,153,41,156,8
+    CTEXT           "품사",IDC_STATIC,109,59,24,8
+    LTEXT           "",IDC_STATIC_CATEGORY,153,59,156,8
+    CTEXT           "예시",IDC_STATIC,109,77,24,8
+    LTEXT           "",IDC_STATIC_EXAMPLE,153,77,156,8
+    CTEXT           "0",IDC_STATIC_COUNT,195,126,24,8
+    PUSHBUTTON      "처음",IDC_BUTTON_FIRST,101,144,30,14
+    PUSHBUTTON      "이전",IDC_BUTTON_PREVIOUS,143,144,30,14
+    PUSHBUTTON      "다음",IDC_BUTTON_NEXT,240,144,30,14
+    PUSHBUTTON      "마지막",IDC_BUTTON_LAST,284,144,30,14
+    PUSHBUTTON      "끼우기",IDC_BUTTON_PUT,328,12,50,14
+    PUSHBUTTON      "찾기",IDC_BUTTON_FIND,328,36,50,14
+    PUSHBUTTON      "뽑아내기",IDC_BUTTON_DRAW,328,60,50,14
+    CONTROL         "",IDC_TREE_WORDS,"SysTreeView32",TVS_HASBUTTONS | TVS_HASLINES | TVS_LINESATROOT | TVS_SHOWSELALWAYS | WS_BORDER | WS_HSCROLL | WS_TABSTOP,7,7,89,252
+    PUSHBUTTON      "정리하기",IDC_BUTTON_ARRANGE,327,83,50,14
+END
+
+IDD_PUTTINGFORM DIALOGEX 0, 0, 311, 142
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "d"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    EDITTEXT        IDC_EDIT_SPELLING,62,20,168,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT_MEANING,62,44,168,14,ES_AUTOHSCROLL
+    COMBOBOX        IDC_COMBO_CATEGORY,62,68,168,114,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_EDIT_EXAMPLE,62,90,168,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "끼우기",IDC_BUTTON_PUT,246,18,50,14
+    GROUPBOX        "단어",IDC_STATIC,7,7,230,125
+    CTEXT           "철자",IDC_STATIC,22,22,26,8
+    CTEXT           "품사",IDC_STATIC,22,70,26,8
+    CTEXT           "예시",IDC_STATIC,22,92,26,8
+    CTEXT           "뜻",IDC_STATIC,22,47,26,8
+END
+
+IDD_FINDINGFORM DIALOGEX 0, 0, 311, 220
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "찾기"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    EDITTEXT        IDC_EDIT_SPELLING,55,30,161,12,ES_AUTOHSCROLL
+    PUSHBUTTON      "찾기",IDC_BUTTON_FIND,246,30,50,14
+    PUSHBUTTON      "선택",IDC_BUTTON_SELECT,246,54,50,14
+    PUSHBUTTON      "처음",IDC_BUTTON_FIRST,6,192,30,14
+    PUSHBUTTON      "이전",IDC_BUTTON_PREVIOUS,48,192,30,14
+    PUSHBUTTON      "다음",IDC_BUTTON_NEXT,156,192,30,14
+    PUSHBUTTON      "마지막",IDC_BUTTON_LAST,198,192,30,14
+    GROUPBOX        "찾기",IDC_STATIC,6,12,227,66
+    GROUPBOX        "단어",IDC_STATIC,6,78,228,84
+    CTEXT           "철자",IDC_STATIC,18,90,24,8
+    LTEXT           "",IDC_STATIC_SPELLING,54,90,162,8
+    CTEXT           "뜻",IDC_STATIC,18,108,24,8
+    LTEXT           "",IDC_STATIC_MEANING,54,108,162,8
+    CTEXT           "품사",IDC_STATIC,18,126,24,8
+    LTEXT           "",IDC_STATIC_CATEGORY,54,126,162,8
+    CTEXT           "예시",IDC_STATIC,18,144,24,8
+    LTEXT           "",IDC_STATIC_EXAMPLE,54,144,162,8
+    LTEXT           "0",IDC_STATIC_NUMBER,54,168,23,8
+    CTEXT           "/",IDC_STATIC,111,168,8,8
+    LTEXT           "0",IDC_STATIC_COUNT,168,168,23,8
+    CONTROL         "철자",IDC_RADIO_SPELLING,"Button",BS_AUTORADIOBUTTON,12,30,29,10
+    CONTROL         " 뜻",IDC_RADIO_MEANING,"Button",BS_AUTORADIOBUTTON,12,54,29,10
+    EDITTEXT        IDC_EDIT_MEANING,54,52,162,14,ES_AUTOHSCROLL
+END
+
+IDD_DRAWINGFORM DIALOGEX 0, 0, 311, 164
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "빼기"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "단어",IDC_STATIC,7,7,225,107
+    CTEXT           "철자",IDC_STATIC,16,24,30,8
+    LTEXT           "",IDC_STATIC_SPELLING,60,23,162,8
+    CTEXT           "뜻",IDC_STATIC,16,44,30,8
+    LTEXT           "",IDC_STATIC_MEANING,60,43,162,8
+    CTEXT           "품사",IDC_STATIC,16,64,30,8
+    LTEXT           "",IDC_STATIC_CATEGORY,60,63,162,8
+    CTEXT           "예시",IDC_STATIC,16,84,30,8
+    LTEXT           "",IDC_STATIC_EXAMPLE,60,83,162,8
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_WORDBOOKFORM, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 384
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 259
+    END
+
+    IDD_PUTTINGFORM, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 304
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 135
+    END
+
+    IDD_FINDINGFORM, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 304
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 213
+    END
+
+    IDD_DRAWINGFORM, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 304
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 157
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_WORDBOOKFORM AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_PUTTINGFORM AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_FINDINGFORM AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_DRAWINGFORM AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+#endif    // Korean (Korea) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
