@@ -149,6 +149,7 @@ BOOL PuttingForm_OnPutButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 		hTvRoot = (HTREEITEM)SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETNEXTITEM, (WPARAM)TVGN_ROOT, (LPARAM)0);
 
 		// 메인윈도우의 트리뷰의 단어들 항목에서 알파벳 항목을 찾는다.
+		hTvAlphabet = NULL;
 		tvItem.mask = TVIF_HANDLE | TVIF_TEXT;
 		tvItem.pszText = alphabet;
 		tvItem.cchTextMax = sizeof(alphabet);
@@ -167,7 +168,12 @@ BOOL PuttingForm_OnPutButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 		SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETITEM, (WPARAM)0, (LPARAM)&tvItem);
 		if (hTvAlphabet == NULL || wordIndexCardLink->alphabet != alphabet[0]) {
 			tvInsertStruct.hParent = hTvRoot;
-			tvInsertStruct.hInsertAfter = hTvAlphabet;
+			if (hTvAlphabet != NULL) {
+				tvInsertStruct.hInsertAfter = hTvAlphabet;
+			}
+			else {
+				tvInsertStruct.hInsertAfter = TVI_FIRST;
+			}
 			tvInsertStruct.item = tvItem;
 			tvInsertStruct.item.pszText[0] = wordIndexCardLink->alphabet;
 			tvInsertStruct.item.pszText[1] = '\0';
@@ -177,7 +183,9 @@ BOOL PuttingForm_OnPutButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 		// 메인윈도우의 트리뷰의 단어들 - 알파벳 항목에서 철자 항목을 찾는다.
 		tvItem.pszText = spelling;
 		tvItem.cchTextMax = sizeof(spelling);
+		hTvSpelling = NULL;
 		hTvIt = (HTREEITEM)SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETNEXTITEM, (WPARAM)TVGN_CHILD, (LPARAM)hTvAlphabet);
+		tvItem.hItem = hTvIt;
 		SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETITEM, (WPARAM)0, (LPARAM)&tvItem);
 		while (hTvIt != NULL && strcmp(wordLink->spelling, spelling) >= 0) {
 			hTvSpelling = hTvIt;
@@ -191,7 +199,12 @@ BOOL PuttingForm_OnPutButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 		SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETITEM, (WPARAM)0, (LPARAM)&tvItem);
 		if (hTvSpelling == NULL || strcmp(wordLink->spelling, spelling) != 0) {
 			tvInsertStruct.hParent = hTvAlphabet;
-			tvInsertStruct.hInsertAfter = hTvSpelling;
+			if (hTvSpelling != NULL) {
+				tvInsertStruct.hInsertAfter = hTvSpelling;
+			}
+			else {
+				tvInsertStruct.hInsertAfter = TVI_FIRST;
+			}
 			tvInsertStruct.item = tvItem;
 			tvInsertStruct.item.pszText = wordLink->spelling;
 			hTvSpelling = (HTREEITEM)SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_INSERTITEM, (WPARAM)0, (LPARAM)&tvInsertStruct);
@@ -200,6 +213,7 @@ BOOL PuttingForm_OnPutButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 		// 메인윈도우의 트리뷰의 단어들 - 알파벳 - 철자 항목에서 품사 항목을 찾는다.
 		tvItem.pszText = category;
 		tvItem.cchTextMax = sizeof(category);
+		hTvCategory = NULL;
 		hTvIt = (HTREEITEM)SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETNEXTITEM, (WPARAM)TVGN_CHILD, (LPARAM)hTvSpelling);
 		tvItem.hItem = hTvIt;
 		SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETITEM, (WPARAM)0, (LPARAM)&tvItem);
@@ -215,7 +229,12 @@ BOOL PuttingForm_OnPutButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 		SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETITEM, (WPARAM)0, (LPARAM)&tvItem);
 		if (hTvCategory == NULL || strcmp(wordLink->category, category) != 0) {
 			tvInsertStruct.hParent = hTvSpelling;
-			tvInsertStruct.hInsertAfter = hTvCategory;
+			if (hTvCategory != NULL) {
+				tvInsertStruct.hInsertAfter = hTvCategory;
+			}
+			else {
+				tvInsertStruct.hInsertAfter = TVI_FIRST;
+			}
 			tvInsertStruct.item = tvItem;
 			tvInsertStruct.item.pszText = wordLink->category;
 			hTvCategory = (HTREEITEM)SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_INSERTITEM, (WPARAM)0, (LPARAM)&tvInsertStruct);
@@ -224,7 +243,9 @@ BOOL PuttingForm_OnPutButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 		// 메인윈도우의 트리뷰의 단어들 - 알파벳 - 철자 - 품사 항목에서 뜻 항목을 추가할 위치를 찾는다
 		tvItem.pszText = meaning;
 		tvItem.cchTextMax = sizeof(meaning);
+		hTvMeaning = NULL;
 		hTvIt = (HTREEITEM)SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETNEXTITEM, (WPARAM)TVGN_CHILD, (LPARAM)hTvCategory);
+		tvItem.hItem = hTvIt;
 		tvItem.hItem = hTvIt;
 		SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETITEM, (WPARAM)0, (LPARAM)&tvItem);
 		while (hTvIt != NULL && strcmp(wordLink->meaning, meaning) >= 0) {
@@ -236,10 +257,15 @@ BOOL PuttingForm_OnPutButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 
 		// 메인윈도우의 트리뷰의 단어들 - 알파벳 - 철자 - 품사 항목에 뜻 항목을 추가한다.
 		tvInsertStruct.hParent = hTvCategory;
-		tvInsertStruct.hInsertAfter = hTvMeaning;
+		if (hTvMeaning != NULL) {
+			tvInsertStruct.hInsertAfter = hTvMeaning;
+		}
+		else {
+			tvInsertStruct.hInsertAfter = TVI_FIRST;
+		}
 		tvInsertStruct.item = tvItem;
 		tvInsertStruct.item.pszText = wordLink->meaning;
-		SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_INSERTITEM, (WPARAM)0, (LPARAM)&tvInsertStruct);
+		hTvMeaning = (HTREEITEM) SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_INSERTITEM, (WPARAM)0, (LPARAM)&tvInsertStruct);
 
 		// 메인윈도우의 트리뷰의 단어들 - 알파벳 항목을 펼친다.
 		SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_EXPAND, (WPARAM)TVE_EXPAND, (LPARAM)hTvAlphabet);

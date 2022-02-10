@@ -2,6 +2,10 @@
 #include "FindingForm.h"
 #include "resource.h"
 #include "WordBook.h"
+#include "WordIndexCardFile.h"
+#include "WordIndexCard.h"
+#include <CommCtrl.h>
+#include <string.h>
 #include <stdio.h>
 #pragma warning(disable : 4996)
 
@@ -42,12 +46,12 @@ BOOL FindingForm_OnInitDialog(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 
 	// 뜻 에디트 컨트롤을 비활성화한다.
 	EnableWindow(GetDlgItem(hWnd, IDC_EDIT_MEANING), FALSE);
-
+	
 	return TRUE;
 }
 
 BOOL FindingForm_OnSpellingRadioButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
-	Word* (*indexes) = NULL;
+	Word* (*wordLinks) = NULL;
 	TCHAR numberText[64];
 	TCHAR countText[64];
 
@@ -69,9 +73,10 @@ BOOL FindingForm_OnSpellingRadioButtonClicked(HWND hWnd, WPARAM wParam, LPARAM l
 		SendMessage(GetDlgItem(hWnd, IDC_STATIC_CATEGORY), WM_SETTEXT, (WPARAM)0, (LPARAM)"");
 		SendMessage(GetDlgItem(hWnd, IDC_STATIC_EXAMPLE), WM_SETTEXT, (WPARAM)0, (LPARAM)"");
 
-		indexes = RemoveProp(hWnd, "PROP_INDEXES");
-		if (indexes != NULL) {
-			free(indexes);
+		wordLinks = (Word * (*))GetWindowLong(hWnd, GWL_USERDATA);
+		if (wordLinks != NULL) {
+			free(wordLinks);
+			SetWindowLong(hWnd, GWL_USERDATA, (LONG)NULL);
 		}
 
 		// 순번을 정한다.
@@ -83,7 +88,6 @@ BOOL FindingForm_OnSpellingRadioButtonClicked(HWND hWnd, WPARAM wParam, LPARAM l
 
 		// 개수를 쓴다.
 		SetProp(hWnd, "PROP_COUNT", 0);
-
 		sprintf(countText, "%d", 0);
 		SendMessage(GetDlgItem(hWnd, IDC_STATIC_COUNT), WM_SETTEXT, (WPARAM)0, (LPARAM)countText);
 	}
@@ -92,7 +96,7 @@ BOOL FindingForm_OnSpellingRadioButtonClicked(HWND hWnd, WPARAM wParam, LPARAM l
 }
 
 BOOL FindingForm_OnMeaningRadioButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
-	Word* (*indexes) = NULL;
+	Word* (*wordLinks) = NULL;
 	TCHAR numberText[64];
 	TCHAR countText[64];
 
@@ -115,9 +119,10 @@ BOOL FindingForm_OnMeaningRadioButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lP
 		SendMessage(GetDlgItem(hWnd, IDC_STATIC_CATEGORY), WM_SETTEXT, (WPARAM)0, (LPARAM)"");
 		SendMessage(GetDlgItem(hWnd, IDC_STATIC_EXAMPLE), WM_SETTEXT, (WPARAM)0, (LPARAM)"");
 
-		indexes = RemoveProp(hWnd, "PROP_INDEXES");
-		if (indexes != NULL) {
-			free(indexes);
+		wordLinks = (Word* (*)) GetWindowLong(hWnd, GWL_USERDATA);
+		if (wordLinks != NULL) {
+			free(wordLinks);
+			SetWindowLong(hWnd, GWL_USERDATA, (LONG)NULL);
 		}
 
 		// 순번을 정한다.
@@ -129,7 +134,6 @@ BOOL FindingForm_OnMeaningRadioButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lP
 
 		// 개수를 쓴다.
 		SetProp(hWnd, "PROP_COUNT", 0);
-
 		sprintf(countText, "%d", 0);
 		SendMessage(GetDlgItem(hWnd, IDC_STATIC_COUNT), WM_SETTEXT, (WPARAM)0, (LPARAM)countText);
 	}
@@ -138,17 +142,26 @@ BOOL FindingForm_OnMeaningRadioButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lP
 }
 
 BOOL FindingForm_OnFindButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
-	WordBook* wordBook = NULL;
+	WordBook* wordBook;
+	WordIndexCardFile *wordIndexCardFile;
+	WordIndexCard *wordIndexCardLink;
 	HWND wordBookFormWindow;
 	int spellingButtonState;
 	int meaningButtonState;
 	TCHAR spelling[48];
 	TCHAR meaning[64];
-	Word* (*indexes) = NULL;
+	char alphabet;
+	Word* (*wordLinks);
+	Long count = 0;
 	Long number;
-	Long count;
 	TCHAR numberText[64];
 	TCHAR countText[64];
+	Long low;
+	Long high;
+	Long middle;
+	Long i;
+	Long j = 0;
+
 
 	if (HIWORD(wParam) == BN_CLICKED) {
 		// 철자 라디오 버튼을 읽는다.
@@ -166,30 +179,77 @@ BOOL FindingForm_OnFindButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 		// 메인윈도우를 찾는다.
 		wordBookFormWindow = FindWindow("#32770", "단어장");
 
-		// 조건에 따라 메인윈도우의 단어장에서 찾는다.
-		wordBook = (WordBook*)GetWindowLong(wordBookFormWindow, GWL_USERDATA);
-
-		indexes = (Word * (*))RemoveProp(hWnd, "PROP_INDEXES");
-		if (indexes != NULL) {
-			free(indexes);
+		// 기존에 찾은 단어들을 없앤다.
+		wordLinks = (Word * (*))GetWindowLong(hWnd, GWL_USERDATA);
+		if (wordLinks != NULL) {
+			free(wordLinks);
+			wordLinks = NULL;
 		}
 
+		// 철자 라디오버튼이 체크되어 있으면
 		if (spellingButtonState == BST_CHECKED) {
-			FindBySpelling(wordBook, spelling, &indexes, &count);
-		}
-		else if (meaningButtonState = BST_CHECKED) {
-			FindByMeaning(wordBook, meaning, &indexes, &count);
+			// 메인윈도우의 색인철에서 색인카드를 찾는다.
+			wordIndexCardFile = (WordIndexCardFile *)GetProp(wordBookFormWindow, "PROP_WORDINDEXCARDFILE");
+
+			alphabet = spelling[0];
+			if (alphabet >= 'a' && alphabet <= 'z') {
+				alphabet -= 'a' - 'A';
+			}
+			wordIndexCardLink = WordIndexCardFile_Find(wordIndexCardFile, alphabet);
+
+			// 색인카드가 있으면
+			if (wordIndexCardLink != NULL) {
+				// 색인카드에서 철자와 일치하는 단어들을 찾는다.
+				wordLinks = (Word * (*)) calloc(wordIndexCardLink->length, sizeof(Word*));
+				low = 0;
+				high = wordIndexCardLink->length - 1;
+				middle = (low + high) / 2;
+				while (low <= high
+					&& strcmp(spelling, WordIndexCard_GetAt(wordIndexCardLink, middle)->spelling) != 0) {
+					if (strcmp(spelling, WordIndexCard_GetAt(wordIndexCardLink, middle)->spelling) < 0) {
+						high = middle - 1;
+					}
+					else {
+						low = middle + 1;
+					}
+
+					middle = (low + high) / 2;
+				}
+
+				i = middle - 1;
+				while (i >= 0 && strcmp(spelling, WordIndexCard_GetAt(wordIndexCardLink, i)->spelling) == 0) {
+					i--;
+				}
+
+				i++;
+				if (i < 0) {
+					i = 0;
+				}
+				while (i < wordIndexCardLink->length
+					&& strcmp(spelling, WordIndexCard_GetAt(wordIndexCardLink, i)->spelling) == 0) {
+					wordLinks[j] = WordIndexCard_GetAt(wordIndexCardLink, i);
+					j++;
+					count++;
+					i++;
+				}
+			}
+			
+		} 
+		else if (meaningButtonState == BST_CHECKED) {
+			// 메인윈도우의 단어장에서 뜻으로 찾는다.
+			wordBook = (WordBook *)GetWindowLong(wordBookFormWindow, GWL_USERDATA);
+			FindByMeaning(wordBook, meaning, &wordLinks, &count);
 		}
 
-		SetProp(hWnd, "PROP_INDEXES", indexes);
-		SetProp(hWnd, "PROP_COUNT", count);
+		SetWindowLong(hWnd, GWL_USERDATA, (LONG) wordLinks);
+
 
 		// 찾아진 단어가 있으면 찾은 첫 단어를 쓴다.
 		if (count > 0) {
-			SendMessage(GetDlgItem(hWnd, IDC_STATIC_SPELLING), WM_SETTEXT, (WPARAM)0, (LPARAM)indexes[0]->spelling);
-			SendMessage(GetDlgItem(hWnd, IDC_STATIC_MEANING), WM_SETTEXT, (WPARAM)0, (LPARAM)indexes[0]->meaning);
-			SendMessage(GetDlgItem(hWnd, IDC_STATIC_CATEGORY), WM_SETTEXT, (WPARAM)0, (LPARAM)indexes[0]->category);
-			SendMessage(GetDlgItem(hWnd, IDC_STATIC_EXAMPLE), WM_SETTEXT, (WPARAM)0, (LPARAM)indexes[0]->example);
+			SendMessage(GetDlgItem(hWnd, IDC_STATIC_SPELLING), WM_SETTEXT, (WPARAM)0, (LPARAM)wordLinks[0]->spelling);
+			SendMessage(GetDlgItem(hWnd, IDC_STATIC_MEANING), WM_SETTEXT, (WPARAM)0, (LPARAM)wordLinks[0]->meaning);
+			SendMessage(GetDlgItem(hWnd, IDC_STATIC_CATEGORY), WM_SETTEXT, (WPARAM)0, (LPARAM)wordLinks[0]->category);
+			SendMessage(GetDlgItem(hWnd, IDC_STATIC_EXAMPLE), WM_SETTEXT, (WPARAM)0, (LPARAM)wordLinks[0]->example);
 		}
 		else {
 			// 찾은 단어가 없으면 내용을 비운다.
@@ -197,7 +257,6 @@ BOOL FindingForm_OnFindButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 			SendMessage(GetDlgItem(hWnd, IDC_STATIC_MEANING), WM_SETTEXT, (WPARAM)0, (LPARAM)"");
 			SendMessage(GetDlgItem(hWnd, IDC_STATIC_CATEGORY), WM_SETTEXT, (WPARAM)0, (LPARAM)"");
 			SendMessage(GetDlgItem(hWnd, IDC_STATIC_EXAMPLE), WM_SETTEXT, (WPARAM)0, (LPARAM)"");
-
 		}
 
 		// 순번을 정한다.
@@ -205,64 +264,135 @@ BOOL FindingForm_OnFindButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 		if (number > count) {
 			number = count;
 		}
-		SetProp(hWnd, "PROP_NUMBER", number);
+		SetProp(hWnd, "PROP_NUMBER", (HANDLE) number);
 
 		// 순번을 쓴다.
 		sprintf(numberText, "%d", number);
 		SendMessage(GetDlgItem(hWnd, IDC_STATIC_NUMBER), WM_SETTEXT, (WPARAM)0, (LPARAM)numberText);
 
 		// 찾은 개수를 쓴다.
+		SetProp(hWnd, "PROP_COUNT", (HANDLE)count);
 		sprintf(countText, "%d", count);
 		SendMessage(GetDlgItem(hWnd, IDC_STATIC_COUNT), WM_SETTEXT, (WPARAM)0, (LPARAM)countText);
-		
 	}
+
+	return TRUE;
 }
 
 BOOL FindingForm_OnSelectButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
-	Long foundNumber;
-	Word* (*indexes) = NULL;
-	Word* index = NULL;
-	HWND wordBookFormWindow;
-	WordBook* wordBook = NULL;
 	Long number;
-	TCHAR numberText[64];
-	Word* it = NULL;
+	HWND wordBookFormWindow;
+	Word* (*wordLinks) = NULL;
+	Word* wordLink = NULL;
+	WordBook* wordBook = NULL;
+	HTREEITEM hTvRoot;
+	HTREEITEM hTvAlphabet;
+	HTREEITEM hTvSpelling;
+	HTREEITEM hTvCategory;
+	HTREEITEM hTvMeaning;
+	HTREEITEM hTvIt;
+	TVITEM tvItem = { 0, };
+	TCHAR alphabet[2];
+	TCHAR spelling[48];
+	TCHAR category[16];
+	TCHAR meaning[64];
 
 	if (HIWORD(wParam) == BN_CLICKED) {
+
 		// 단어의 위치를 찾는다.
-		foundNumber = (Long)GetProp(hWnd, "PROP_NUMBER");
-		indexes = (Word * (*)) GetProp(hWnd, "PROP_INDEXES");
+		number = (Long)GetProp(hWnd, "PROP_NUMBER");
+		wordLinks = (Word * (*)) GetWindowLong(hWnd, GWL_USERDATA);
+		wordLink = wordLinks[number - 1];
 
 		// 메인윈도우를 찾는다.
 		wordBookFormWindow = FindWindow("#32770", "단어장");
-		// 메인윈도우에서 위치로 이동한다.
+
+		// 메인윈도우의 단어장에서 위치로 이동한다.
 		wordBook = (WordBook*)GetWindowLong(wordBookFormWindow, GWL_USERDATA);
-		index = WordBook_Move(wordBook, indexes[foundNumber - 1]);
+		wordLink = WordBook_Move(wordBook, wordLink);
 
-		// 메인윈도우에 단어를 쓴다.
-		SendMessage(GetDlgItem(wordBookFormWindow, IDC_STATIC_SPELLING), WM_SETTEXT, (WPARAM)0, (LPARAM)index->spelling);
-		SendMessage(GetDlgItem(wordBookFormWindow, IDC_STATIC_MEANING), WM_SETTEXT, (WPARAM)0, (LPARAM)index->meaning);
-		SendMessage(GetDlgItem(wordBookFormWindow, IDC_STATIC_CATEGORY), WM_SETTEXT, (WPARAM)0, (LPARAM)index->category);
-		SendMessage(GetDlgItem(wordBookFormWindow, IDC_STATIC_EXAMPLE), WM_SETTEXT, (WPARAM)0, (LPARAM)index->example);
+		// 메인윈도우의 트리뷰에서 단어들 항목을 찾는다.
+		hTvRoot = (HTREEITEM)SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETNEXTITEM, (WPARAM)TVGN_ROOT, (LPARAM)0);
 
-		// 위치의 순번을 찾는다.
-		number = 1;
-		it = WordBook_First(wordBook);
-		while (it != index) {
-			number++;
-			it = WordBook_Next(wordBook);
+		// 메인윈도우의 트리뷰의 단어들 항목에서 알파벳 항목을 찾는다.
+		tvItem.mask = TVIF_HANDLE | TVIF_TEXT;
+		tvItem.pszText = alphabet;
+		tvItem.cchTextMax = sizeof(alphabet);
+		hTvIt = (HTREEITEM)SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETNEXTITEM, (WPARAM)TVGN_CHILD, (LPARAM)hTvRoot);
+		tvItem.hItem = hTvIt;
+		SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETITEM, (WPARAM)0, (LPARAM)&tvItem);
+		alphabet[0] += 'a' - 'A';
+		while (hTvIt != NULL && (wordLink->spelling[0] != alphabet[0])) {
+			hTvIt = (HTREEITEM)SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETNEXTITEM, (WPARAM)TVGN_NEXT, (LPARAM)hTvIt);
+			tvItem.hItem = hTvIt;
+			SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETITEM, (WPARAM)0, (LPARAM)&tvItem);
+			alphabet[0] += 'a' - 'A';
 		}
+		hTvAlphabet = hTvIt;
 
-		SetProp(wordBookFormWindow, "PROP_NUMBER", number);
+		// 메인윈도우의 트리뷰의 단어들 - 알파벳 항목에서 철자 항목을 찾는다.
+		tvItem.pszText = spelling;
+		tvItem.cchTextMax = sizeof(spelling);
+		hTvIt = (HTREEITEM)SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETNEXTITEM, (WPARAM)TVGN_CHILD, (LPARAM)hTvAlphabet);
+		tvItem.hItem = hTvIt;
+		SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETITEM, (WPARAM)0, (LPARAM)&tvItem);
+		while (hTvIt != NULL && strcmp(wordLink->spelling, spelling) != 0) {
+			hTvIt = (HTREEITEM)SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETNEXTITEM, (WPARAM)TVGN_NEXT, (LPARAM)hTvIt);
+			tvItem.hItem = hTvIt;
+			SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETITEM, (WPARAM)0, (LPARAM)&tvItem);
+		}
+		hTvSpelling = hTvIt;
 
-		// 메인윈도우에서 순번을 쓴다.
-		sprintf(numberText, "%d", number);
-		SendMessage(GetDlgItem(wordBookFormWindow, IDC_STATIC_NUMBER), WM_SETTEXT, (WPARAM)0, (LPARAM)numberText);
+		// 메인윈도우의 트리뷰의 단어들 - 알파벳 - 철자 항목에서 품사 항목을 찾는다.
+		tvItem.pszText = category;
+		tvItem.cchTextMax = sizeof(category);
+		hTvIt = (HTREEITEM)SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETNEXTITEM, (WPARAM)TVGN_CHILD, (LPARAM)hTvSpelling);
+		tvItem.hItem = hTvIt;
+		SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETITEM, (WPARAM)0, (LPARAM)&tvItem);
+		while (hTvIt != NULL && strcmp(wordLink->category, category) != 0) {
+			hTvIt = (HTREEITEM)SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETNEXTITEM, (WPARAM)TVGN_NEXT, (LPARAM)hTvIt);
+			tvItem.hItem = hTvIt;
+			SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETITEM, (WPARAM)0, (LPARAM)&tvItem);
+		}
+		hTvCategory = hTvIt;
+
+		// 메인윈도우의 트리뷰의 단어들 - 알파벳 - 철파 - 품사 항목에서 뜻 항목을 찾는다.
+		tvItem.pszText = meaning;
+		tvItem.cchTextMax = sizeof(meaning);
+		hTvIt = (HTREEITEM)SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETNEXTITEM, (WPARAM)TVGN_CHILD, (LPARAM)hTvCategory);
+		tvItem.hItem = hTvIt;
+		SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETITEM, (WPARAM)0, (LPARAM)&tvItem);
+		while (hTvIt != NULL && strcmp(wordLink->meaning, meaning) != 0) {
+			hTvIt = (HTREEITEM)SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETNEXTITEM, (WPARAM)TVGN_NEXT, (LPARAM)hTvIt);
+			tvItem.hItem = hTvIt;
+			SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETITEM, (WPARAM)0, (LPARAM)&tvItem);
+		}
+		hTvMeaning = hTvIt;
+
+		// 메인윈도우의 트리뷰의 단어들 항목을 펼친다.
+		SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_EXPAND, (WPARAM)TVE_EXPAND, (LPARAM)hTvRoot);
+		
+		// 메인윈도우의 트리뷰의 단어들 - 알파벳 항목을 펼친다.
+		SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_EXPAND, (WPARAM)TVE_EXPAND, (LPARAM)hTvAlphabet);
+		
+		// 메인윈도우의 트리뷰의 단어들 - 알파벳 - 철자 항목을 펼친다.
+		SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_EXPAND, (WPARAM)TVE_EXPAND, (LPARAM)hTvSpelling);
+
+		// 메인윈도우의 트리뷰의 단어들 - 알파벳 - 철자 - 품사 항목을 펼친다.
+		SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_EXPAND, (WPARAM)TVE_EXPAND, (LPARAM)hTvCategory);
+
+		// 메인윈도우의 트리뷰의 단어들 - 알파벳 - 철자 - 품사 - 뜻 항목을 선택한다.
+		SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_SELECTITEM, (WPARAM)TVGN_CARET, (LPARAM)hTvMeaning);
+		
+		// 메인윈도우에 단어를 쓴다.
+		SendMessage(GetDlgItem(wordBookFormWindow, IDC_STATIC_SPELLING), WM_SETTEXT, (WPARAM)0, (LPARAM)wordLink->spelling);
+		SendMessage(GetDlgItem(wordBookFormWindow, IDC_STATIC_MEANING), WM_SETTEXT, (WPARAM)0, (LPARAM)wordLink->meaning);
+		SendMessage(GetDlgItem(wordBookFormWindow, IDC_STATIC_CATEGORY), WM_SETTEXT, (WPARAM)0, (LPARAM)wordLink->category);
+		SendMessage(GetDlgItem(wordBookFormWindow, IDC_STATIC_EXAMPLE), WM_SETTEXT, (WPARAM)0, (LPARAM)wordLink->example);
 
 		// 찾기 윈도우를 닫는다.
-		RemoveProp(hWnd, "PROP_INDEXES");
-		if (indexes != NULL) {
-			free(indexes);
+		if (wordLinks != NULL) {
+			free(wordLinks);
 		}
 
 		RemoveProp(hWnd, "PROP_NUMBER");
@@ -275,23 +405,21 @@ BOOL FindingForm_OnSelectButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) 
 }
 
 BOOL FindingForm_OnFirstButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
-	Word* (*indexes) = NULL;
+	Word* (*wordLinks) = NULL;
 	TCHAR numberText[64];
 
 	if (HIWORD(wParam) == BN_CLICKED) {
 
-		// 처음으로 이동한다.
-		SetProp(hWnd, "PROP_NUMBER", 1);
-		
 		// 찾은 첫 단어를 쓴다.
-		indexes = (Word * (*)) GetProp(hWnd, "PROP_INDEXES");
+		wordLinks = (Word * (*)) GetWindowLong(hWnd, GWL_USERDATA);
 
-		SendMessage(GetDlgItem(hWnd, IDC_STATIC_SPELLING), WM_SETTEXT, (WPARAM)0, (LPARAM)indexes[0]->spelling);
-		SendMessage(GetDlgItem(hWnd, IDC_STATIC_MEANING), WM_SETTEXT, (WPARAM)0, (LPARAM)indexes[0]->meaning);
-		SendMessage(GetDlgItem(hWnd, IDC_STATIC_CATEGORY), WM_SETTEXT, (WPARAM)0, (LPARAM)indexes[0]->category);
-		SendMessage(GetDlgItem(hWnd, IDC_STATIC_EXAMPLE), WM_SETTEXT, (WPARAM)0, (LPARAM)indexes[0]->example);
+		SendMessage(GetDlgItem(hWnd, IDC_STATIC_SPELLING), WM_SETTEXT, (WPARAM)0, (LPARAM)wordLinks[0]->spelling);
+		SendMessage(GetDlgItem(hWnd, IDC_STATIC_MEANING), WM_SETTEXT, (WPARAM)0, (LPARAM)wordLinks[0]->meaning);
+		SendMessage(GetDlgItem(hWnd, IDC_STATIC_CATEGORY), WM_SETTEXT, (WPARAM)0, (LPARAM)wordLinks[0]->category);
+		SendMessage(GetDlgItem(hWnd, IDC_STATIC_EXAMPLE), WM_SETTEXT, (WPARAM)0, (LPARAM)wordLinks[0]->example);
 
 		// 순번을 쓴다.
+		SetProp(hWnd, "PROP_NUMBER", (HANDLE)1);
 		sprintf(numberText, "%d", 1);
 		SendMessage(GetDlgItem(hWnd, IDC_STATIC_NUMBER), WM_SETTEXT, (WPARAM)0, (LPARAM)numberText);
 	}
@@ -300,28 +428,29 @@ BOOL FindingForm_OnFirstButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 }
 
 BOOL FindingForm_OnPreviousButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
-	Word* (*indexes) = NULL;
+	Word* (*wordLinks) = NULL;
 	Long number;
 	TCHAR numberText[64];
 
 	if (HIWORD(wParam) == BN_CLICKED) {
+
 		// 이전으로 이동한다.
 		number = (Long)GetProp(hWnd, "PROP_NUMBER");
-		number--;
-		if (number < 1) {
-			number = 1;
+		if (number > 1) {
+			number--;
 		}
 
-		SetProp(hWnd, "PROP_NUMBER", number);
 
 		// 이전 단어를 쓴다.
-		indexes = (Word * (*)) GetProp(hWnd, "PROP_INDEXES");
-		SendMessage(GetDlgItem(hWnd, IDC_STATIC_SPELLING), WM_SETTEXT, (WPARAM)0, (LPARAM)indexes[number - 1]->spelling);
-		SendMessage(GetDlgItem(hWnd, IDC_STATIC_MEANING), WM_SETTEXT, (WPARAM)0, (LPARAM)indexes[number - 1]->meaning);
-		SendMessage(GetDlgItem(hWnd, IDC_STATIC_CATEGORY), WM_SETTEXT, (WPARAM)0, (LPARAM)indexes[number - 1]->category);
-		SendMessage(GetDlgItem(hWnd, IDC_STATIC_EXAMPLE), WM_SETTEXT, (WPARAM)0, (LPARAM)indexes[number - 1]->example);
+		wordLinks = (Word * (*)) GetWindowLong(hWnd, GWL_USERDATA);
+
+		SendMessage(GetDlgItem(hWnd, IDC_STATIC_SPELLING), WM_SETTEXT, (WPARAM)0, (LPARAM)wordLinks[number - 1]->spelling);
+		SendMessage(GetDlgItem(hWnd, IDC_STATIC_MEANING), WM_SETTEXT, (WPARAM)0, (LPARAM)wordLinks[number - 1]->meaning);
+		SendMessage(GetDlgItem(hWnd, IDC_STATIC_CATEGORY), WM_SETTEXT, (WPARAM)0, (LPARAM)wordLinks[number - 1]->category);
+		SendMessage(GetDlgItem(hWnd, IDC_STATIC_EXAMPLE), WM_SETTEXT, (WPARAM)0, (LPARAM)wordLinks[number - 1]->example);
 
 		// 순번을 쓴다.
+		SetProp(hWnd, "PROP_NUMBER", (HANDLE)number);
 		sprintf(numberText, "%d", number);
 		SendMessage(GetDlgItem(hWnd, IDC_STATIC_NUMBER), WM_SETTEXT, (WPARAM)0, (LPARAM)numberText);
 	}
@@ -330,7 +459,7 @@ BOOL FindingForm_OnPreviousButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam
 }
 
 BOOL FindingForm_OnNextButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
-	Word* (*indexes) = NULL;
+	Word* (*wordLinks) = NULL;
 	Long number;
 	Long count;
 	TCHAR numberText[64];
@@ -339,21 +468,21 @@ BOOL FindingForm_OnNextButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 		// 다음으로 이동한다.
 		number = (Long)GetProp(hWnd, "PROP_NUMBER");
 		count = (Long)GetProp(hWnd, "PROP_COUNT");
-		number++;
-		if (number > count) {
-			number = count;
+		if (number < count) {
+			number++;
 		}
 
-		SetProp(hWnd, "PROP_NUMBER", number);
 
 		// 다음 단어를 쓴다.
-		indexes = (Word * (*)) GetProp(hWnd, "PROP_INDEXES");
-		SendMessage(GetDlgItem(hWnd, IDC_STATIC_SPELLING), WM_SETTEXT, (WPARAM)0, (LPARAM)indexes[number - 1]->spelling);
-		SendMessage(GetDlgItem(hWnd, IDC_STATIC_MEANING), WM_SETTEXT, (WPARAM)0, (LPARAM)indexes[number - 1]->meaning);
-		SendMessage(GetDlgItem(hWnd, IDC_STATIC_CATEGORY), WM_SETTEXT, (WPARAM)0, (LPARAM)indexes[number - 1]->category);
-		SendMessage(GetDlgItem(hWnd, IDC_STATIC_EXAMPLE), WM_SETTEXT, (WPARAM)0, (LPARAM)indexes[number - 1]->example);
+		wordLinks = (Word * (*))GetWindowLong(hWnd, GWL_USERDATA);
+
+		SendMessage(GetDlgItem(hWnd, IDC_STATIC_SPELLING), WM_SETTEXT, (WPARAM)0, (LPARAM)wordLinks[number - 1]->spelling);
+		SendMessage(GetDlgItem(hWnd, IDC_STATIC_MEANING), WM_SETTEXT, (WPARAM)0, (LPARAM)wordLinks[number - 1]->meaning);
+		SendMessage(GetDlgItem(hWnd, IDC_STATIC_CATEGORY), WM_SETTEXT, (WPARAM)0, (LPARAM)wordLinks[number - 1]->category);
+		SendMessage(GetDlgItem(hWnd, IDC_STATIC_EXAMPLE), WM_SETTEXT, (WPARAM)0, (LPARAM)wordLinks[number - 1]->example);
 
 		// 순번을 쓴다.
+		SetProp(hWnd, "PROP_NUMBER", (HANDLE)number);
 		sprintf(numberText, "%d", number);
 		SendMessage(GetDlgItem(hWnd, IDC_STATIC_NUMBER), WM_SETTEXT, (WPARAM)0, (LPARAM)numberText);
 	}
@@ -362,7 +491,7 @@ BOOL FindingForm_OnNextButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 }
 
 BOOL FindingForm_OnLastButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
-	Word* (*indexes) = NULL;
+	Word* (*wordLinks) = NULL;
 	TCHAR numberText[64];
 
 	Long count;
@@ -370,16 +499,17 @@ BOOL FindingForm_OnLastButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 	if (HIWORD(wParam) == BN_CLICKED) {
 		// 끝으로 이동한다.
 		count = (Long)GetProp(hWnd, "PROP_COUNT");
-		SetProp(hWnd, "PROP_NUMBER", count);
 
 		// 마지막 단어를 쓴다.
-		indexes = (Word * (*)) GetProp(hWnd, "PROP_INDEXES");
-		SendMessage(GetDlgItem(hWnd, IDC_STATIC_SPELLING), WM_SETTEXT, (WPARAM)0, (LPARAM)indexes[count - 1]->spelling);
-		SendMessage(GetDlgItem(hWnd, IDC_STATIC_MEANING), WM_SETTEXT, (WPARAM)0, (LPARAM)indexes[count - 1]->meaning);
-		SendMessage(GetDlgItem(hWnd, IDC_STATIC_CATEGORY), WM_SETTEXT, (WPARAM)0, (LPARAM)indexes[count - 1]->category);
-		SendMessage(GetDlgItem(hWnd, IDC_STATIC_EXAMPLE), WM_SETTEXT, (WPARAM)0, (LPARAM)indexes[count - 1]->example);
+		wordLinks = (Word * (*)) GetWindowLong(hWnd, GWL_USERDATA);
+
+		SendMessage(GetDlgItem(hWnd, IDC_STATIC_SPELLING), WM_SETTEXT, (WPARAM)0, (LPARAM)wordLinks[count - 1]->spelling);
+		SendMessage(GetDlgItem(hWnd, IDC_STATIC_MEANING), WM_SETTEXT, (WPARAM)0, (LPARAM)wordLinks[count - 1]->meaning);
+		SendMessage(GetDlgItem(hWnd, IDC_STATIC_CATEGORY), WM_SETTEXT, (WPARAM)0, (LPARAM)wordLinks[count - 1]->category);
+		SendMessage(GetDlgItem(hWnd, IDC_STATIC_EXAMPLE), WM_SETTEXT, (WPARAM)0, (LPARAM)wordLinks[count - 1]->example);
 
 		// 순번을 쓴다
+		SetProp(hWnd, "PROP_NUMBER", (HANDLE)count);
 		sprintf(numberText, "%d", count);
 		SendMessage(GetDlgItem(hWnd, IDC_STATIC_NUMBER), WM_SETTEXT, (WPARAM)0, (LPARAM)numberText);
 	}
@@ -389,11 +519,11 @@ BOOL FindingForm_OnLastButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 
 
 BOOL FindingForm_OnClose(HWND hWnd, WPARAM wParam, LPARAM lParam) {
-	Word* (*indexes) = NULL;
+	Word* (*wordLinks) = NULL;
 
-	indexes = (Word * (*)) RemoveProp(hWnd, "PROP_INDEXES");
-	if (indexes != NULL) {
-		free(indexes);
+	wordLinks = (Word * (*)) GetWindowLong(hWnd, GWL_USERDATA);
+	if (wordLinks != NULL) {
+		free(wordLinks);
 	}
 
 	RemoveProp(hWnd, "PROP_NUMBER");

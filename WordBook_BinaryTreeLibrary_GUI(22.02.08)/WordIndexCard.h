@@ -22,4 +22,4 @@ void WordIndexCard_Destroy(WordIndexCard *wordIndexCard);
 int CompareWordLinks(void *one, void *other);
 int CompareWordLinksBySpelling(void *one, void *other);
 
-#endif //_WordINDEXCARD_H
+#endif //_WORDINDEXCARD_H
