@@ -20,6 +20,7 @@ typedef struct _wordBook {
 // 함수 정의
 void WordBook_Create(WordBook* wordBook);
 Long Load(WordBook* wordBook);
+Long LoadMemorizedWords(WordBook *memorizedWordBook);
 Word* WordBook_Put(WordBook* wordBook, Word word);
 void FindBySpelling(WordBook* wordBook, char(*spelling), Word** (*indexes), Long* count);
 void FindByMeaning(WordBook* wordBook, char(*meaning), Word** (*indexes), Long* count);
@@ -30,6 +31,7 @@ Word* WordBook_Move(WordBook* wordBook, Word *index);
 Word* WordBook_Next(WordBook* wordBook);
 Word* WordBook_Last(WordBook* wordBook);
 Long Save(WordBook* wordBook);
+Long SaveMemorizedWords(WordBook *memorizedWordBook);
 void WordBook_Destroy(WordBook* wordBook);
 int CompareSpellings(void* one, void* other);
 int CompareMeanings(void* one, void* other);

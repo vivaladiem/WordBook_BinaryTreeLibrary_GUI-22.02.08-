@@ -3,6 +3,7 @@
 #include "PuttingForm.h"
 #include "FindingForm.h"
 #include "DrawingForm.h"
+#include "WordTestForm.h"
 #include "resource.h"
 #include "WordBook.h"
 #include "WordIndexCard.h"
@@ -11,9 +12,11 @@
 #include <stdlib.h>
 #include <CommCtrl.h>
 #include <string.h>
+
 #pragma warning(disable: 4996)
 
-BOOL WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevHInstance, LPSTR lpCmdLine, int mCmdShow) {
+
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevHInstance, LPSTR lpCmdLine, int mCmdShow) {
 	int response;
 
 	response = DialogBox(hInstance, MAKEINTRESOURCE(IDD_WORDBOOKFORM), NULL, WordBookFormProc);
@@ -66,6 +69,7 @@ BOOL WordBookForm_OnNotify(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 BOOL WordBookForm_OnInitDialog(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 	WordBook* wordBook;
 	WordIndexCardFile *wordIndexCardFile;
+	WordBook *memorizedWordBook;
 	Word *it;
 	Word *previous = NULL;
 	Word *wordLink;
@@ -91,7 +95,7 @@ BOOL WordBookForm_OnInitDialog(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 	// 단어장을 생성한다.
 	wordBook = (WordBook*)malloc(sizeof(WordBook));
 	WordBook_Create(wordBook);
-	SetWindowLong(hWnd, GWL_USERDATA, (LONG)wordBook);
+	SetWindowLong(hWnd, GWLP_USERDATA, (LONG)wordBook);
 
 	// 단어장을 로드한다.
 	count = Load(wordBook);
@@ -100,6 +104,14 @@ BOOL WordBookForm_OnInitDialog(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 	wordIndexCardFile = (WordIndexCardFile*)malloc(sizeof(WordIndexCardFile));
 	WordIndexCardFile_Create(wordIndexCardFile);
 	SetProp(hWnd, "PROP_WORDINDEXCARDFILE", (HANDLE)wordIndexCardFile);
+
+	// 외운단어장을 생성한다.
+	memorizedWordBook = (WordBook*)malloc(sizeof(WordBook));
+	WordBook_Create(memorizedWordBook);
+	SetProp(hWnd, "PROP_MEMORIZEDWORDBOOK", (HANDLE)memorizedWordBook);
+
+	// 외운단어장을 로드한다.
+	LoadMemorizedWords(memorizedWordBook);
 
 	// 단어장에 단어가 있으면
 	if (count > 0) {
@@ -368,7 +380,7 @@ BOOL WordBookForm_OnTreeViewItemDoubleClicked(HWND hWnd, WPARAM wParam, LPARAM l
 			}
 
 			// 단어장에서 단어의 위치로 이동한다.
-			wordBook = (WordBook *)GetWindowLong(hWnd, GWL_USERDATA);
+			wordBook = (WordBook *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 			wordLink = WordBook_Move(wordBook, wordLink);
 
 			// 단어를 쓴다.
@@ -386,7 +398,7 @@ BOOL WordBookForm_OnPutButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 	HINSTANCE hInstance;
 
 	if (HIWORD(wParam) == BN_CLICKED) {
-		hInstance = (HINSTANCE)GetWindowLong(hWnd, GWL_HINSTANCE);
+		hInstance = (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE);
 		DialogBox(hInstance, MAKEINTRESOURCE(IDD_PUTTINGFORM), NULL, PuttingFormProc);
 	}
 
@@ -397,7 +409,7 @@ BOOL WordBookForm_OnFindButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 	HINSTANCE hInstance;
 
 	if (HIWORD(wParam) == BN_CLICKED) {
-		hInstance = (HINSTANCE)GetWindowLong(hWnd, GWL_HINSTANCE);
+		hInstance = (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE);
 		DialogBox(hInstance, MAKEINTRESOURCE(IDD_FINDINGFORM), NULL, FindingFormProc);
 	}
 
@@ -409,8 +421,8 @@ BOOL WordBookForm_OnDrawButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 	HINSTANCE hInstance;
 
 	if (HIWORD(wParam) == BN_CLICKED) {
-		hInstance = (HINSTANCE)GetWindowLong(hWnd, GWL_HINSTANCE);
-		DialogBox(hInstance, MAKEINTRESOURCE(IDD_DRAWINGFORM), NULL, DrawingFormProc);
+		hInstance = (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE);
+		DialogBox(hInstance, MAKEINTRESOURCE(IDD_DRAWINGFORM), (WPARAM) NULL, (LPARAM) DrawingFormProc);
 	}
 
 	return TRUE;
@@ -553,7 +565,7 @@ BOOL WordBookForm_OnArrangeButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam
 		}
 
 		// 단어장에서 처음으로 간다.
-		wordBook = (WordBook *)GetWindowLong(hWnd, GWL_USERDATA);
+		wordBook = (WordBook *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 		wordLink = WordBook_First(wordBook);
 		
 		// 트리뷰의 단어들 - 알파벳 항목을 찾는다.
@@ -650,7 +662,7 @@ BOOL WordBookForm_OnFirstButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) 
 	if (HIWORD(wParam) == BN_CLICKED) {
 
 		// 단어장에서 처음으로 간다.
-		wordBook = (WordBook*)GetWindowLong(hWnd, GWL_USERDATA);
+		wordBook = (WordBook*)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 		wordLink = WordBook_First(wordBook);
 
 		// 트리뷰에서 단어들 항목을 찾는다.
@@ -753,7 +765,7 @@ BOOL WordBookForm_OnPreviousButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lPara
 	if (HIWORD(wParam) == BN_CLICKED) {
 
 		// 단어장에서 이전으로 간다.
-		wordBook = (WordBook*)GetWindowLong(hWnd, GWL_USERDATA);
+		wordBook = (WordBook*)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 		wordLink = WordBook_Previous(wordBook);
 
 		// 트리뷰에서 단어들 항목을 찾는다.
@@ -852,7 +864,7 @@ BOOL WordBookForm_OnNextButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 	if (HIWORD(wParam) == BN_CLICKED) {
 
 		// 단어장에서 다음으로 간다.
-		wordBook = (WordBook*)GetWindowLong(hWnd, GWL_USERDATA);
+		wordBook = (WordBook*)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 		wordLink = WordBook_Next(wordBook);
 
 		// 트리뷰에서 단어들 항목을 찾는다.
@@ -951,7 +963,7 @@ BOOL WordBookForm_OnLastButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 	if (HIWORD(wParam) == BN_CLICKED) {
 
 		// 단어장에서 끝으로 간다.
-		wordBook = (WordBook*)GetWindowLong(hWnd, GWL_USERDATA);
+		wordBook = (WordBook*)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 		wordLink = WordBook_Last(wordBook);
 
 		// 트리뷰에서 단어들 항목을 찾는다.
@@ -1035,8 +1047,9 @@ BOOL WordBookForm_OnLastButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 BOOL WordBookForm_OnClose(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 	WordBook* wordBook;
 	WordIndexCardFile *wordIndexCardFile;
+	WordBook *memorizedWordBook;
 
-	wordBook = (WordBook *)GetWindowLong(hWnd, GWL_USERDATA);
+	wordBook = (WordBook *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 
 	if (wordBook != NULL) {
 		Save(wordBook);
@@ -1048,6 +1061,14 @@ BOOL WordBookForm_OnClose(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 	if (wordIndexCardFile != NULL) {
 		WordIndexCardFile_Destroy(wordIndexCardFile);
 		free(wordIndexCardFile);
+	}
+
+	memorizedWordBook = (WordBook *)RemoveProp(hWnd, "PROP_MEMORIZEDWORDBOOK");
+
+	if (memorizedWordBook != NULL) {
+		SaveMemorizedWords(memorizedWordBook);
+		WordBook_Destroy(memorizedWordBook);
+		free(memorizedWordBook);
 	}
 
 	EndDialog(hWnd, 0);

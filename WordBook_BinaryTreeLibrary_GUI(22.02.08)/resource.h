@@ -6,6 +6,7 @@
 #define IDD_PUTTINGFORM                 103
 #define IDD_FINDINGFORM                 105
 #define IDD_DRAWINGFORM                 107
+#define IDD_WORDTESTFORM                109
 #define IDC_STATIC_WORD                 1001
 #define IDC_STATIC_SPELLING             1002
 #define IDC_STATIC_M                    1003
@@ -31,14 +32,23 @@
 #define IDC_RADIO_MEANING               1026
 #define IDC_TREE_WORDS                  1028
 #define IDC_BUTTON1                     1029
+#define IDC_STATIC_MEANINGRESULT        1036
+#define IDC_STATIC_SPELLINGANSWER       1037
+#define IDC_STATIC_MEANINGANSWER        1037
+#define IDC_STATIC_CATEGORYRESULT       1038
+#define IDC_STATIC_CATEGORYANSWER       1039
+#define IDC_STATIC_EXAMPLERESULT        1040
+#define IDC_STATIC_EXAMPLEANSWER        1041
+#define IDC_STATIC_CORRECTWORDSCOUNT    1042
+#define IDC_STATIC_REMAINWORDSCOUNT     1043
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        109
+#define _APS_NEXT_RESOURCE_VALUE        111
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1030
+#define _APS_NEXT_CONTROL_VALUE         1045
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

@@ -3,7 +3,7 @@
 #define _WORDBOOKFORM_H
 
 #include <Windows.h>
-BOOL CALLBACK WordBookFormProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+int CALLBACK WordBookFormProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 BOOL WordBookForm_OnInitDialog(HWND hWnd, WPARAM wParam, LPARAM lParam);
 BOOL WordBookForm_OnCommand(HWND hWnd, WPARAM wParam, LPARAM lParam);
 BOOL WordBookForm_OnNotify(HWND hWnd, WPARAM wParam, LPARAM lParam);

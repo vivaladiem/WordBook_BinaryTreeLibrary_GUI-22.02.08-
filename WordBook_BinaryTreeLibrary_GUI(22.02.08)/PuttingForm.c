@@ -49,7 +49,6 @@ BOOL PuttingForm_OnInitDialog(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 
 BOOL PuttingForm_OnSpellingLostFocus(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 	HWND wordBookFormWindow;
-	WordBook* wordBook = NULL;
 	WordIndexCardFile *wordIndexCardFile;
 	TCHAR spelling[48];
 	WordIndexCard *wordIndexCardLink;
@@ -135,7 +134,7 @@ BOOL PuttingForm_OnPutButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 		wordBookFormWindow = FindWindow("#32770", "단어장");
 
 		// 메인 윈도우의 단어장에 끼운다.
-		wordBook = (WordBook*)GetWindowLong(wordBookFormWindow, GWL_USERDATA);
+		wordBook = (WordBook*)GetWindowLongPtr(wordBookFormWindow, GWLP_USERDATA);
 		wordLink = WordBook_Put(wordBook, word);
 
 		// 메인윈도우의 색인철에 단어를 끼운다.

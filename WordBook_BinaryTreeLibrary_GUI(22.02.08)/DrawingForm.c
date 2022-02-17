@@ -45,7 +45,7 @@ BOOL DrawingForm_OnInitDialog(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 	wordBookFormWindow = FindWindow("#32770", "단어장");
 
 	// 메인윈도우의 단어장에서 현재 단어를 빼낸다.
-	wordBook = (WordBook*)GetWindowLong(wordBookFormWindow, GWL_USERDATA);
+	wordBook = (WordBook*)GetWindowLongPtr(wordBookFormWindow, GWLP_USERDATA);
 	wordLink = wordBook->current;
 	word = WordBook_Draw(wordBook, wordLink);
 
@@ -278,7 +278,7 @@ BOOL DrawingForm_OnClose(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 		wordBookFormWindow = FindWindow("#32770", "단어장");
 
 		// 메인윈도우의 단어장에 끼운다.
-		wordBook = (WordBook*)GetWindowLong(wordBookFormWindow, GWL_USERDATA);
+		wordBook = (WordBook*)GetWindowLongPtr(wordBookFormWindow, GWLP_USERDATA);
 		wordLink = WordBook_Put(wordBook, word);
 
 		// 메인윈도우의 색인철에 단어를 끼운다.

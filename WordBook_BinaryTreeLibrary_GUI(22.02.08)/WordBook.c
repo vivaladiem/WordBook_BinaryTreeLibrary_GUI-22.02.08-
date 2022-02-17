@@ -149,6 +149,28 @@ Long Load(WordBook* wordBook) {
 	return wordBook->length;
 }
 
+Long LoadMemorizedWords(WordBook *memorizedWordBook) {
+	Word word;
+	Node *node;
+	FILE *file = NULL;
+	size_t flag;
+
+	file = fopen("MemorizedWords.dat", "rb");
+	if (file != NULL) {
+		flag = fread(&word, sizeof(Word), 1, file);
+		while(!feof(file) && flag != 0) {
+			node = AppendFromTail(&memorizedWordBook->words, &word, sizeof(Word));
+			memorizedWordBook->length++;
+			memorizedWordBook->current = (Word*)(node + 1);
+			flag = fread(&word, sizeof(Word), 1, file);
+		}
+
+		fclose(file);
+	}
+
+	return memorizedWordBook->length;
+}
+
 Word* WordBook_Put(WordBook* wordBook, Word word) {
 	Node* node = NULL;
 
@@ -317,6 +339,33 @@ Long Save(WordBook* wordBook) {
 	}
 
 	return wordBook->length;
+}
+
+Long SaveMemorizedWords(WordBook *memorizedWordBook) {
+	Node *node;
+	Node *previousNode = NULL;
+	Word word;
+	FILE *file = NULL;
+
+	file = fopen("MemorizedWords.dat", "wb");
+	
+	if (file != NULL) {
+		node = First(&memorizedWordBook->words);
+
+		while(node != previousNode) {
+			GetAt(&memorizedWordBook->words, node, &word, sizeof(Word));
+
+			fwrite(&word, sizeof(Word), 1, file);
+
+			previousNode = node;
+
+			node = Next(&memorizedWordBook->words);
+		}
+
+		fclose(file);
+	}
+
+	return memorizedWordBook->length;
 }
 
 void WordBook_Destroy(WordBook* wordBook) {

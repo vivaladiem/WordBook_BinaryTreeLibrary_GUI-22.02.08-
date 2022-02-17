@@ -43,7 +43,7 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
-    <CharacterSet>Unicode</CharacterSet>
+    <CharacterSet>NotSet</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -149,6 +149,7 @@
     <ClCompile Include="PuttingForm.c" />
     <ClCompile Include="WordBook.c" />
     <ClCompile Include="WordBookForm.c" />
+    <ClCompile Include="WordTestForm.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Array.h" />
@@ -162,6 +163,7 @@
     <ClInclude Include="resource.h" />
     <ClInclude Include="WordBook.h" />
     <ClInclude Include="WordBookForm.h" />
+    <ClInclude Include="WordTestForm.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="WordBookForm_21.11.12.rc" />
