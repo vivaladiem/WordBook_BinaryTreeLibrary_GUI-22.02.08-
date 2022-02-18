@@ -5,6 +5,7 @@
 #include "WordIndexCardFile.h"
 #include "WordIndexCard.h"
 #include <CommCtrl.h>
+#include <stdio.h.>
 #pragma warning(disable : 4996)
 
 BOOL CALLBACK PuttingFormProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {

@@ -3,7 +3,7 @@
 #define _WORDBOOKFORM_H
 
 #include <Windows.h>
-int CALLBACK WordBookFormProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+BOOL CALLBACK WordBookFormProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 BOOL WordBookForm_OnInitDialog(HWND hWnd, WPARAM wParam, LPARAM lParam);
 BOOL WordBookForm_OnCommand(HWND hWnd, WPARAM wParam, LPARAM lParam);
 BOOL WordBookForm_OnNotify(HWND hWnd, WPARAM wParam, LPARAM lParam);
@@ -17,5 +17,7 @@ BOOL WordBookForm_OnFirstButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam);
 BOOL WordBookForm_OnPreviousButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam);
 BOOL WordBookForm_OnNextButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam);
 BOOL WordBookForm_OnLastButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam);
+BOOL WordBookForm_OnTestButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam);
+BOOL WordBookForm_OnMemorizedWordsButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam);
 
 #endif //_WORDBOOKFORM_H

@@ -4,6 +4,7 @@
 #include "FindingForm.h"
 #include "DrawingForm.h"
 #include "WordTestForm.h"
+#include "MemorizedWordBookForm.h"
 #include "resource.h"
 #include "WordBook.h"
 #include "WordIndexCard.h"
@@ -46,6 +47,8 @@ BOOL WordBookForm_OnCommand(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 	case IDC_BUTTON_FIND: result = WordBookForm_OnFindButtonClicked(hWnd, wParam, lParam); break;
 	case IDC_BUTTON_DRAW: result = WordBookForm_OnDrawButtonClicked(hWnd, wParam, lParam); break;
 	case IDC_BUTTON_ARRANGE: result = WordBookForm_OnArrangeButtonClicked(hWnd, wParam, lParam); break;
+	case IDC_BUTTON_TEST: result = WordBookForm_OnTestButtonClicked(hWnd, wParam, lParam); break;
+	case IDC_BUTTON_MEMORIZEDWORDS: result = WordBookForm_OnMemorizedWordsButtonClicked(hWnd, wParam, lParam); break;
 	case IDC_BUTTON_FIRST: result = WordBookForm_OnFirstButtonClicked(hWnd, wParam, lParam); break;
 	case IDC_BUTTON_PREVIOUS: result = WordBookForm_OnPreviousButtonClicked(hWnd, wParam, lParam); break;
 	case IDC_BUTTON_NEXT: result = WordBookForm_OnNextButtonClicked(hWnd, wParam, lParam); break;
@@ -410,7 +413,7 @@ BOOL WordBookForm_OnFindButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 
 	if (HIWORD(wParam) == BN_CLICKED) {
 		hInstance = (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE);
-		DialogBox(hInstance, MAKEINTRESOURCE(IDD_FINDINGFORM), NULL, FindingFormProc);
+		DialogBox(hInstance, MAKEINTRESOURCE(IDD_FINDINGFORM), (WPARAM) NULL, FindingFormProc);
 	}
 
 	return TRUE;
@@ -422,7 +425,7 @@ BOOL WordBookForm_OnDrawButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 
 	if (HIWORD(wParam) == BN_CLICKED) {
 		hInstance = (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE);
-		DialogBox(hInstance, MAKEINTRESOURCE(IDD_DRAWINGFORM), (WPARAM) NULL, (LPARAM) DrawingFormProc);
+		DialogBox(hInstance, MAKEINTRESOURCE(IDD_DRAWINGFORM), (WPARAM) NULL, DrawingFormProc);
 	}
 
 	return TRUE;
@@ -638,6 +641,29 @@ BOOL WordBookForm_OnArrangeButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam
 		SendMessage(GetDlgItem(hWnd, IDC_STATIC_MEANING), WM_SETTEXT, (WPARAM)0, (LPARAM)wordLink->meaning);
 		SendMessage(GetDlgItem(hWnd, IDC_STATIC_CATEGORY), WM_SETTEXT, (WPARAM)0, (LPARAM)wordLink->category);
 		SendMessage(GetDlgItem(hWnd, IDC_STATIC_EXAMPLE), WM_SETTEXT, (WPARAM)0, (LPARAM)wordLink->example);
+	}
+
+	return TRUE;
+}
+
+
+BOOL WordBookForm_OnTestButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
+	HINSTANCE hInstance;
+
+	if (HIWORD(wParam) == BN_CLICKED) {
+		hInstance = (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE);
+		DialogBox(hInstance, MAKEINTRESOURCE(IDD_WORDTESTFORM), (WPARAM)NULL, WordTestFormProc);
+	}
+
+	return TRUE;
+}
+
+BOOL WordBookForm_OnMemorizedWordsButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
+	HINSTANCE hInstance;
+
+	if (HIWORD(wParam) == BN_CLICKED) {
+		hInstance = (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE);
+		DialogBox(hInstance, MAKEINTRESOURCE(IDD_MEMORIZEDWORDBOOKFORM), (WPARAM)NULL, MemorizedWordBookFormProc);
 	}
 
 	return TRUE;

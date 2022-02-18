@@ -17,8 +17,7 @@ BOOL CALLBACK WordTestFormProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 
 	switch (message) {
 	case WM_INITDIALOG: ret = WordTestForm_OnInitDialog(hWnd, wParam, lParam); break;
-	//case WM_COMMAND: ret = WordTestForm_OnCommand(hWnd, wParam, lParam); break;
-	//case WM_NOTIFY: ret = WordTestForm_OnNotify(hWnd, wParam, lParam); break;
+	case WM_COMMAND: ret = WordTestForm_OnCommand(hWnd, wParam, lParam); break;
 	case WM_CLOSE: ret = WordTestForm_OnClose(hWnd, wParam, lParam); break;
 	default: ret = FALSE; break;
 	}
@@ -30,18 +29,8 @@ BOOL WordTestForm_OnCommand(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 	BOOL ret;
 
 	switch (LOWORD(wParam)) {
-	// case IDC_BUTTON_NEXT: ret = WordTestForm_OnNextButtonClicked(hWnd, wParam, lParam); break;
-	default: ret = FALSE; break;
-	}
-
-	return ret;
-}
-
-BOOL WordTestForm_OnNotify(HWND hWnd, WPARAM wParam, LPARAM lParam) {
-	BOOL ret;
-
-	switch (wParam) {
-	case IDC_EDIT_EXAMPLE: ret = WordTestForm_OnExampleEditControlTabKeyDown(hWnd, wParam, lParam); break;
+	case IDC_EDIT_EXAMPLE: ret = WordTestForm_OnExampleEditControlLostFocus(hWnd, wParam, lParam); break;
+	case IDC_BUTTON_NEXT: ret = WordTestForm_OnNextButtonClicked(hWnd, wParam, lParam); break;
 	default: ret = FALSE; break;
 	}
 
@@ -104,10 +93,10 @@ BOOL WordTestForm_OnInitDialog(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 }
 
 
-BOOL WordTestForm_OnExampleEditControlTabKeyDown(HWND hWnd, WPARAM wParam, LPARAM lParam) {
+BOOL WordTestForm_OnExampleEditControlLostFocus(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 	HWND wordBookFormWindow;
 	TCHAR alphabet[2];
-	TCHAR wordAlphabet[2];
+	char wordAlphabet;
 	TCHAR spelling[48];
 	TCHAR meaning[64];
 	TCHAR category[16];
@@ -122,11 +111,12 @@ BOOL WordTestForm_OnExampleEditControlTabKeyDown(HWND hWnd, WPARAM wParam, LPARA
 	WordIndexCard *wordIndexCardLink;
 	WordBook *memorizedWordBook;
 	HTREEITEM hTvRoot;
-	HTREEITEM hTvAlphabet;
-	HTREEITEM hTvSpelling;
-	HTREEITEM hTvCategory;
-	HTREEITEM hTvMeaning;
+	HTREEITEM hTvAlphabet = NULL;
+	HTREEITEM hTvSpelling = NULL;
+	HTREEITEM hTvCategory = NULL;
+	HTREEITEM hTvMeaning = NULL;
 	HTREEITEM hTvIt;
+	HTREEITEM hTvChild;
 	TVITEM tvItem = { 0, };
 	BOOL result;
 	BOOL meaningResult;
@@ -136,8 +126,8 @@ BOOL WordTestForm_OnExampleEditControlTabKeyDown(HWND hWnd, WPARAM wParam, LPARA
 	TCHAR categoryAnswer[20];
 	TCHAR exampleAnswer[68];
 
-	if (((LPNMHDR)lParam)->code == NM_KEYDOWN && ((LPNMKEY)lParam)->nVKey == VK_TAB) {
-		
+	if (HIWORD(wParam) == EN_KILLFOCUS) {
+
 		// 뜻, 품사, 예시를 읽는다.
 		SendMessage(GetDlgItem(hWnd, IDC_EDIT_MEANING), WM_GETTEXT, (WPARAM)sizeof(meaning), (LPARAM)meaning);
 		SendMessage(GetDlgItem(hWnd, IDC_COMBO_CATEGORY), WM_GETTEXT, (WPARAM)sizeof(category), (LPARAM)category);
@@ -145,32 +135,41 @@ BOOL WordTestForm_OnExampleEditControlTabKeyDown(HWND hWnd, WPARAM wParam, LPARA
 
 		// 메인윈도우를 찾는다.
 		wordBookFormWindow = FindWindow("#32770", "단어장");
-		
+
 		// 단어와 비교해 채점한다.
 		wordBook = (WordBook *)GetWindowLongPtr(wordBookFormWindow, GWLP_USERDATA);
 		wordLink = wordBook->current;
-		if (strcmp(wordLink->meaning, meaning) != 0) {
+		if (strcmp(wordLink->meaning, meaning) == 0) {
+			meaningResult = TRUE;
+		} else {
 			meaningResult = FALSE;
-			result = FALSE;
 		}
-		else if (strcmp(wordLink->category, category) != 0) {
+
+		if (strcmp(wordLink->category, category) == 0) {
+			categoryResult = TRUE;
+		} else {
 			categoryResult = FALSE;
-			result = FALSE;
 		}
-		else if (strcmp(wordLink->example, example) != 0) {
+
+		if (strcmp(wordLink->example, example) == 0) {
+			exampleResult = TRUE;
+		} else {
 			exampleResult = FALSE;
-			result = FALSE;
+		}
+
+		if (meaningResult == TRUE && categoryResult == TRUE && exampleResult == TRUE) {
+			result = TRUE;
 		}
 		else {
-			result = TRUE;
+			result = FALSE;
 		}
 
 		SetProp(hWnd, "PROP_RESULT", (HANDLE)result);
 
 		// 맞았으면
-		if(result == TRUE) {
+		if (result == TRUE) {
 			// 메인윈도우의 단어장에서 단어를 빼낸다.
-			word = WordBook_Draw(wordBookFormWindow, wordLink);
+			word = WordBook_Draw(wordBook, wordLink);
 
 			// 메인윈도우의 색인철에서 단어를 빼낸다.
 			wordIndexCardFile = (WordIndexCardFile *)GetProp(wordBookFormWindow, "PROP_WORDINDEXCARDFILE");
@@ -181,10 +180,224 @@ BOOL WordTestForm_OnExampleEditControlTabKeyDown(HWND hWnd, WPARAM wParam, LPARA
 			wordLink = WordBook_Put(memorizedWordBook, word);
 
 			// 채점결과를 쓴다.
-			//Sendmessage(GetDlgItem(hWnd, IDC_STATIC_MEANINGRESULT), WM_SETTEXT, (WPARAM)0, (LPARAM)"O");
-			
+			SendMessage(GetDlgItem(hWnd, IDC_STATIC_MEANINGRESULT), WM_SETTEXT, (WPARAM)0, (LPARAM)"O");
+			SendMessage(GetDlgItem(hWnd, IDC_STATIC_CATEGORYRESULT), WM_SETTEXT, (WPARAM)0, (LPARAM)"O");
+			SendMessage(GetDlgItem(hWnd, IDC_STATIC_EXAMPLERESULT), WM_SETTEXT, (WPARAM)0, (LPARAM)"O");
+
+			// 맞춘 개수를 쓴다.
+			correctWordsCount = (Long)GetProp(hWnd, "PROP_CORRECTWORDSCOUNT");
+			correctWordsCount++;
+			sprintf(correctWordsCountText, "%d", correctWordsCount);
+			SendMessage(GetDlgItem(hWnd, IDC_STATIC_CORRECTWORDSCOUNT), WM_SETTEXT, (WPARAM)0, (LPARAM)correctWordsCountText);
+			SetProp(hWnd, "PROP_CORRECTWORDSCOUNT", (HANDLE)correctWordsCount);
+
+			// 남은 단어 수를 쓴다.
+			sprintf(remainWordsCountText, "%d", wordBook->length);
+			SendMessage(GetDlgItem(hWnd, IDC_STATIC_REMAINWORDSCOUNT), WM_SETTEXT, (WPARAM)0, (LPARAM)remainWordsCountText);
+
+			// 메인윈도우의 트리뷰에서 단어들 항목을 찾는다.
+			hTvRoot = (HTREEITEM)SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETNEXTITEM, (WPARAM)TVGN_ROOT, (LPARAM)0);
+
+			// 메인윈도우의 트리뷰의 단어들 항목에서 알파벳 항목을 찾는다.
+			tvItem.mask = TVIF_HANDLE | TVIF_TEXT;
+			tvItem.pszText = alphabet;
+			tvItem.cchTextMax = sizeof(alphabet);
+			wordAlphabet = word.spelling[0];
+			if (wordAlphabet >= 'a' && wordAlphabet <= 'z') {
+				wordAlphabet -= 'a' - 'A';
+			}
+			hTvIt = (HTREEITEM)SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETNEXTITEM, (WPARAM)TVGN_CHILD, (LPARAM)hTvRoot);
+			tvItem.hItem = hTvIt;
+			SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETITEM, (WPARAM)0, (LPARAM)&tvItem);
+			while (hTvIt != NULL && (wordAlphabet != alphabet[0])) {
+				hTvIt = (HTREEITEM)SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETNEXTITEM, (WPARAM)TVGN_NEXT, (LPARAM)hTvIt);
+				tvItem.hItem = hTvIt;
+				SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETITEM, (WPARAM)0, (LPARAM)&tvItem);
+			}
+			hTvAlphabet = hTvIt;
+
+			// 메인윈도우의 트리뷰의 단어들 - 알파벳 항목에서 철자 항목을 찾는다.
+			tvItem.pszText = spelling;
+			tvItem.cchTextMax = sizeof(spelling);
+			hTvIt = (HTREEITEM)SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETNEXTITEM, (WPARAM)TVGN_CHILD, (LPARAM)hTvAlphabet);
+			tvItem.hItem = hTvIt;
+			SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETITEM, (WPARAM)0, (LPARAM)&tvItem);
+			while (hTvIt != NULL && strcmp(word.spelling, spelling) != 0) {
+				hTvIt = (HTREEITEM)SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETNEXTITEM, (WPARAM)TVGN_NEXT, (LPARAM)hTvIt);
+				tvItem.hItem = hTvIt;
+				SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETITEM, (WPARAM)0, (LPARAM)&tvItem);
+			}
+			hTvSpelling = hTvIt;
+
+			// 메인윈도우의 트리뷰의 단어들 - 알파벳 - 철자 항목에서 품사 항목을 찾는다.
+			tvItem.pszText = category;
+			tvItem.cchTextMax = sizeof(category);
+			hTvIt = (HTREEITEM)SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETNEXTITEM, (WPARAM)TVGN_CHILD, (LPARAM)hTvSpelling);
+			tvItem.hItem = hTvIt;
+			SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETITEM, (WPARAM)0, (LPARAM)&tvItem);
+			while (hTvIt != NULL && strcmp(word.category, category) != 0) {
+				hTvIt = (HTREEITEM)SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETNEXTITEM, (WPARAM)TVGN_NEXT, (LPARAM)hTvIt);
+				tvItem.hItem = hTvIt;
+				SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETITEM, (WPARAM)0, (LPARAM)&tvItem);
+			}
+			hTvCategory = hTvIt;
+
+			// 메인윈도우의 트리뷰의 단어들 - 알파벳 - 철자 - 품사 항목에서 뜻 항목을 찾는다.
+			tvItem.pszText = meaning;
+			tvItem.cchTextMax = sizeof(meaning);
+			hTvIt = (HTREEITEM)SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETNEXTITEM, (WPARAM)TVGN_CHILD, (LPARAM)hTvCategory);
+			tvItem.hItem = hTvIt;
+			SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETITEM, (WPARAM)0, (LPARAM)&tvItem);
+			while (hTvIt != NULL && strcmp(word.meaning, meaning) != 0) {
+				hTvIt = (HTREEITEM)SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETNEXTITEM, (WPARAM)TVGN_NEXT, (LPARAM)hTvIt);
+				tvItem.hItem = hTvIt;
+				SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETITEM, (WPARAM)0, (LPARAM)&tvItem);
+			}
+			hTvMeaning = hTvIt;
+
+			// 메인윈도우의 트리뷰의 단어들 - 알파벳 - 철자 - 품사 - 뜻 항목을 지운다.
+			SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_DELETEITEM, (WPARAM)0, (LPARAM)hTvMeaning);
+
+			// 메인윈도우의 트리뷰의 단어들 - 알파벳 - 철자 - 품사 항목의 자식이 없으면 지운다.
+			hTvChild = (HTREEITEM)SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETNEXTITEM, (WPARAM)TVGN_CHILD, (LPARAM)hTvCategory);
+			if (hTvChild == NULL) {
+				SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_DELETEITEM, (WPARAM)0, (LPARAM)hTvCategory);
+
+				// 메인윈도우의 트리뷰의 단어들 - 알파벳 - 철자 항목의 자식이 없으면 지운다.
+				hTvChild = (HTREEITEM)SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETNEXTITEM, (WPARAM)TVGN_CHILD, (LPARAM)hTvSpelling);
+				if (hTvChild == NULL) {
+					SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_DELETEITEM, (WPARAM)0, (LPARAM)hTvSpelling);
+
+					// 메인윈도우의 트리뷰의 단어들 - 알파벳 항목의 자식이 없으면 지운다.
+					hTvChild = (HTREEITEM)SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETNEXTITEM, (WPARAM)TVGN_CHILD, (LPARAM)hTvAlphabet);
+					if (hTvChild == NULL) {
+						SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_DELETEITEM, (WPARAM)0, (LPARAM)hTvAlphabet);
+					}
+				}
+			}
 		}
+		else {
+			// 틀렸으면
+			// 틀린 항목의 채점결과와 답안을 쓴다.
+			if (meaningResult == FALSE) {
+				SendMessage(GetDlgItem(hWnd, IDC_STATIC_MEANINGRESULT), WM_SETTEXT, (WPARAM)0, (LPARAM)"X");
+				sprintf(meaningAnswer, "(%s)", wordLink->meaning);
+				SendMessage(GetDlgItem(hWnd, IDC_STATIC_MEANINGANSWER), WM_SETTEXT, (WPARAM)0, (LPARAM)meaningAnswer);
+			}
+			else {
+				SendMessage(GetDlgItem(hWnd, IDC_STATIC_MEANINGRESULT), WM_SETTEXT, (WPARAM)0, (LPARAM)"O");
+			}
+
+			if (categoryResult == FALSE) {
+				SendMessage(GetDlgItem(hWnd, IDC_STATIC_CATEGORYRESULT), WM_SETTEXT, (WPARAM)0, (LPARAM)"X");
+				sprintf(categoryAnswer, "(%s)", wordLink->category);
+				SendMessage(GetDlgItem(hWnd, IDC_STATIC_CATEGORYANSWER), WM_SETTEXT, (WPARAM)0, (LPARAM)categoryAnswer);
+			}
+			else {
+				SendMessage(GetDlgItem(hWnd, IDC_STATIC_CATEGORYRESULT), WM_SETTEXT, (WPARAM)0, (LPARAM)"O");
+			}
+
+			if (exampleResult == FALSE) {
+				SendMessage(GetDlgItem(hWnd, IDC_STATIC_EXAMPLERESULT), WM_SETTEXT, (WPARAM)0, (LPARAM)"X");
+				sprintf(exampleAnswer, "(%s)", wordLink->example);
+				SendMessage(GetDlgItem(hWnd, IDC_STATIC_EXAMPLEANSWER), WM_SETTEXT, (WPARAM)0, (LPARAM)exampleAnswer);
+			}
+			else {
+				SendMessage(GetDlgItem(hWnd, IDC_STATIC_EXAMPLERESULT), WM_SETTEXT, (WPARAM)0, (LPARAM)"O");
+			}
+		}
+
+		// 뜻, 품사, 예시 에디트 컨트롤을 비활성화한다.
+		EnableWindow(GetDlgItem(hWnd, IDC_EDIT_MEANING), FALSE);
+		EnableWindow(GetDlgItem(hWnd, IDC_COMBO_CATEGORY), FALSE);
+		EnableWindow(GetDlgItem(hWnd, IDC_EDIT_EXAMPLE), FALSE);
+
+		// 다음 버튼을 포커스한다.
+		SetFocus(GetDlgItem(hWnd, IDC_BUTTON_NEXT));
+
 	}
+
+	return TRUE;
+}
+
+
+BOOL WordTestForm_OnNextButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
+	HWND wordBookFormWindow;
+	WordBook *wordBook;
+	Word *wordLink;
+	Word *previousWordLink = NULL;
+	BOOL result;
+	Long number;
+	TCHAR numberText[64];
+
+	if (HIWORD(wParam) == BN_CLICKED) {
+
+		// 메인윈도우를 찾는다.
+		wordBookFormWindow = FindWindow("#32770", "단어장");
+		wordBook = (WordBook*)GetWindowLongPtr(wordBookFormWindow, GWLP_USERDATA);
+
+		// 채점결과 틀렸으면 메인윈도우의 단어장에서 다음으로 이동한다.
+		result = (BOOL)GetProp(hWnd, "PROP_RESULT");
+		if (result == FALSE) {
+			previousWordLink = wordBook->current;
+			WordBook_Next(wordBook);
+		}
+
+		// 뜻, 품사, 예시 에디트 컨트롤의 텍스트를 지운다.
+		SendMessage(GetDlgItem(hWnd, IDC_EDIT_MEANING), WM_SETTEXT, (WPARAM)0, (LPARAM)"");
+		SendMessage(GetDlgItem(hWnd, IDC_COMBO_CATEGORY), WM_SETTEXT, (WPARAM)0, (LPARAM)"");
+		SendMessage(GetDlgItem(hWnd, IDC_EDIT_EXAMPLE), WM_SETTEXT, (WPARAM)0, (LPARAM)"");
+
+		// 뜻, 품사, 예시의 채점결과를 지운다.
+		SendMessage(GetDlgItem(hWnd, IDC_STATIC_MEANINGRESULT), WM_SETTEXT, (WPARAM)0, (LPARAM)"");
+		SendMessage(GetDlgItem(hWnd, IDC_STATIC_CATEGORYRESULT), WM_SETTEXT, (WPARAM)0, (LPARAM)"");
+		SendMessage(GetDlgItem(hWnd, IDC_STATIC_EXAMPLERESULT), WM_SETTEXT, (WPARAM)0, (LPARAM)"");
+
+		// 뜻, 품사, 예시 답안을 지운다.
+		SendMessage(GetDlgItem(hWnd, IDC_STATIC_MEANINGANSWER), WM_SETTEXT, (WPARAM)0, (LPARAM)"");
+		SendMessage(GetDlgItem(hWnd, IDC_STATIC_CATEGORYANSWER), WM_SETTEXT, (WPARAM)0, (LPARAM)"");
+		SendMessage(GetDlgItem(hWnd, IDC_STATIC_EXAMPLEANSWER), WM_SETTEXT, (WPARAM)0, (LPARAM)"");
+
+		// 메인윈도우의 단어장에 현재 단어가 있으면
+		wordLink = wordBook->current;
+		if (wordLink != NULL) {
+			// 마지막 단어이면 처음으로 간다.
+			if (wordLink == previousWordLink) {
+				wordLink = WordBook_First(wordBook);
+			}
+
+			// 순번을 구한다.
+			number = (Long)GetWindowLongPtr(hWnd, GWLP_USERDATA);
+			number++;
+
+			// 순번을 쓴다.
+			sprintf(numberText, "%d", number);
+			SendMessage(GetDlgItem(hWnd, IDC_STATIC_NUMBER), WM_SETTEXT, (WPARAM)0, (LPARAM)numberText);
+			SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG)number);
+
+			// 철자를 쓴다.
+			SendMessage(GetDlgItem(hWnd, IDC_STATIC_SPELLING), WM_SETTEXT, (WPARAM)0, (LPARAM)wordLink->spelling);
+
+			// 뜻, 품사, 예시를 활성화한다.
+			EnableWindow(GetDlgItem(hWnd, IDC_EDIT_MEANING), TRUE);
+			EnableWindow(GetDlgItem(hWnd, IDC_COMBO_CATEGORY), TRUE);
+			EnableWindow(GetDlgItem(hWnd, IDC_EDIT_EXAMPLE), TRUE);
+
+			// 뜻 에디트 컨트롤을 포커스한다.
+			SetFocus(GetDlgItem(hWnd, IDC_EDIT_MEANING));
+		}
+		else {
+			// 메인윈도우의 단어장에 단어가 없으면
+			// 메시를 쓴다.
+			SendMessage(GetDlgItem(hWnd, IDC_STATIC_MESSAGE), WM_SETTEXT, (WPARAM)0, (LPARAM)"대단하시네요! 모든 단어를 완벽히 외우셨군요!");
+
+			// 철자를 지운다.
+			SendMessage(GetDlgItem(hWnd, IDC_STATIC_SPELLING), WM_SETTEXT, (WPARAM)0, (LPARAM)"");
+		}
+
+	}
+
+	return TRUE;
 }
 
 
@@ -200,7 +413,7 @@ BOOL WordTestForm_OnClose(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 	HTREEITEM hTvIt;
 	TVITEM tvItem = { 0, };
 	TCHAR alphabet[2];
-	TCHAR wordAlphabet[2];
+	char wordAlphabet;
 	TCHAR spelling[48];
 	TCHAR category[16];
 	TCHAR meaning[64];
@@ -221,16 +434,15 @@ BOOL WordTestForm_OnClose(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 		tvItem.mask = TVIF_HANDLE | TVIF_TEXT;
 		tvItem.pszText = alphabet;
 		tvItem.cchTextMax = sizeof(alphabet);
-		wordAlphabet[0] = wordLink->spelling[0];
-		if (wordAlphabet[0] >= 'a' && wordAlphabet[0] <= 'z') {
-			wordAlphabet[0] -= 'a' - 'A';
+		wordAlphabet = wordLink->spelling[0];
+		if (wordAlphabet >= 'a' && wordAlphabet <= 'z') {
+			wordAlphabet -= 'a' - 'A';
 		}
-		wordAlphabet[1] = '\0';
 		hTvIt = (HTREEITEM)SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETNEXTITEM,
 			(WPARAM)TVGN_CHILD, (LPARAM)hTvRoot);
 		tvItem.hItem = hTvIt;
 		SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETITEM, (WPARAM)0, (LPARAM)&tvItem);
-		while (hTvIt != NULL && (wordAlphabet[0] != alphabet[0])) {
+		while (hTvIt != NULL && (wordAlphabet != alphabet[0])) {
 			hTvIt = (HTREEITEM)SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETNEXTITEM,
 				(WPARAM)TVGN_NEXT, (LPARAM)hTvIt);
 			tvItem.hItem = hTvIt;
@@ -314,5 +526,7 @@ BOOL WordTestForm_OnClose(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 	RemoveProp(hWnd, "PROP_CORRECTWORDSCOUNT");
 	RemoveProp(hWnd, "PROP_RESULT");
 
+	EndDialog(hWnd, 0);
+	
 	return TRUE;
 }

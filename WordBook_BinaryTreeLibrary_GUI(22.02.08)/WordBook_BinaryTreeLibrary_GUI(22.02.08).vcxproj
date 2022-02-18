@@ -140,6 +140,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Array.c" />
+    <ClCompile Include="MemorizedWordBookForm.c" />
     <ClCompile Include="WordIndexCard.c" />
     <ClCompile Include="WordIndexCardFile.c" />
     <ClCompile Include="BinaryTree.c" />
@@ -153,6 +154,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Array.h" />
+    <ClInclude Include="MemorizedWordBookForm.h" />
     <ClInclude Include="WordIndexCard.h" />
     <ClInclude Include="WordIndexCardFile.h" />
     <ClInclude Include="BinaryTree.h" />

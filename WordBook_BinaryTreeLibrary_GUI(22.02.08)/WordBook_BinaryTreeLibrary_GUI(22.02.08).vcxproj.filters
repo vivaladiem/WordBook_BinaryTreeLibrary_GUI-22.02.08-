@@ -48,6 +48,9 @@
     <ClCompile Include="WordTestForm.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="MemorizedWordBookForm.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Array.h">
@@ -84,6 +87,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="WordTestForm.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MemorizedWordBookForm.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
