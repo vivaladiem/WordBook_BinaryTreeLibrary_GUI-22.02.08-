@@ -98,7 +98,7 @@ BOOL WordBookForm_OnInitDialog(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 	// 단어장을 생성한다.
 	wordBook = (WordBook*)malloc(sizeof(WordBook));
 	WordBook_Create(wordBook);
-	SetWindowLong(hWnd, GWLP_USERDATA, (LONG)wordBook);
+	SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)wordBook);
 
 	// 단어장을 로드한다.
 	count = Load(wordBook);

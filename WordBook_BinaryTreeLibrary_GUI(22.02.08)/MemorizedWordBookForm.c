@@ -87,6 +87,7 @@ BOOL MemorizedWordBookForm_OnPutButtonClicked(HWND hWnd, WPARAM wParam, LPARAM l
 	TCHAR spelling[48];
 	TCHAR category[16];
 	TCHAR meaning[64];
+	TCHAR mainWindowCountText[64];
 
 	if (HIWORD(wParam) == BN_CLICKED) {
 		// 메인윈도우를 찾는다.
@@ -124,7 +125,7 @@ BOOL MemorizedWordBookForm_OnPutButtonClicked(HWND hWnd, WPARAM wParam, LPARAM l
 		SendMessage(GetDlgItem(hWnd, IDC_STATIC_COUNT), WM_SETTEXT, (WPARAM)0, (LPARAM)countText);
 
 		// 클릭횟수를 리셋한다.
-		SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG)0);
+		SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)0);
 
 		// 메인윈도우의 트리뷰에서 단어들 항목을 찾는다.
 		hTvRoot = (HTREEITEM)SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETNEXTITEM,
@@ -247,6 +248,11 @@ BOOL MemorizedWordBookForm_OnPutButtonClicked(HWND hWnd, WPARAM wParam, LPARAM l
 		tvItem.pszText = wordLink->meaning;
 		tvInsertStruct.item = tvItem;
 		hTvMeaning = (HTREEITEM)SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_INSERTITEM, (WPARAM)0, (LPARAM)&tvInsertStruct);
+
+
+		// 메인윈도우에서 개수를 쓴다.
+		sprintf(mainWindowCountText, "%d", wordBook->length);
+		SendMessage(GetDlgItem(wordBookFormWindow, IDC_STATIC_COUNT), WM_SETTEXT, (WPARAM)0, (LPARAM)mainWindowCountText);
 	}
 
 	return TRUE;
@@ -282,7 +288,7 @@ BOOL MemorizedWordBookForm_OnShowAnswerButtonClicked(HWND hWnd, WPARAM wParam, L
 			else if (clickCount == 3) {
 				SendMessage(GetDlgItem(hWnd, IDC_STATIC_EXAMPLE), WM_SETTEXT, (WPARAM)0, (LPARAM)wordLink->example);
 			}
-			SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG)clickCount);
+			SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)clickCount);
 		}
 	}
 
@@ -312,7 +318,7 @@ BOOL MemorizedWordBookForm_OnFirstButtonClicked(HWND hWnd, WPARAM wParam, LPARAM
 		SendMessage(GetDlgItem(hWnd, IDC_STATIC_EXAMPLE), WM_SETTEXT, (WPARAM)0, (LPARAM)"");
 
 		// 클릭횟수를 리셋한다.
-		SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG)0);
+		SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)0);
 	}
 
 	return TRUE;
@@ -340,7 +346,7 @@ BOOL MemorizedWordBookForm_OnPreviousButtonClicked(HWND hWnd, WPARAM wParam, LPA
 		SendMessage(GetDlgItem(hWnd, IDC_STATIC_EXAMPLE), WM_SETTEXT, (WPARAM)0, (LPARAM)"");
 
 		// 클릭 횟수를 리셋한다.
-		SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG)0);
+		SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)0);
 
 	}
 
@@ -369,7 +375,7 @@ BOOL MemorizedWordBookForm_OnNextButtonClicked(HWND hWnd, WPARAM wParam, LPARAM 
 		SendMessage(GetDlgItem(hWnd, IDC_STATIC_EXAMPLE), WM_SETTEXT, (WPARAM)0, (LPARAM)"");
 
 		// 클릭횟수를 리셋한다.
-		SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG)0);
+		SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)0);
 
 	}
 
@@ -399,7 +405,7 @@ BOOL MemorizedWordBookForm_OnLastButtonClicked(HWND hWnd, WPARAM wParam, LPARAM 
 		SendMessage(GetDlgItem(hWnd, IDC_STATIC_EXAMPLE), WM_SETTEXT, (WPARAM)0, (LPARAM)"");
 
 		// 클릭횟수를 리셋한다.
-		SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG)0);
+		SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)0);
 	}
 
 	return TRUE;

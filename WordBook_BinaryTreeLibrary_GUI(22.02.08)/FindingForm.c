@@ -76,7 +76,7 @@ BOOL FindingForm_OnSpellingRadioButtonClicked(HWND hWnd, WPARAM wParam, LPARAM l
 		wordLinks = (Word * (*))GetWindowLongPtr(hWnd, GWLP_USERDATA);
 		if (wordLinks != NULL) {
 			free(wordLinks);
-			SetWindowLong(hWnd, GWLP_USERDATA, (LONG)NULL);
+			SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)NULL);
 		}
 
 		// 순번을 정한다.
@@ -122,7 +122,7 @@ BOOL FindingForm_OnMeaningRadioButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lP
 		wordLinks = (Word* (*)) GetWindowLongPtr(hWnd, GWLP_USERDATA);
 		if (wordLinks != NULL) {
 			free(wordLinks);
-			SetWindowLong(hWnd, GWLP_USERDATA, (LONG)NULL);
+			SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)NULL);
 		}
 
 		// 순번을 정한다.
@@ -241,7 +241,7 @@ BOOL FindingForm_OnFindButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 			FindByMeaning(wordBook, meaning, &wordLinks, &count);
 		}
 
-		SetWindowLong(hWnd, GWLP_USERDATA, (LONG) wordLinks);
+		SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR) wordLinks);
 
 
 		// 찾아진 단어가 있으면 찾은 첫 단어를 쓴다.
