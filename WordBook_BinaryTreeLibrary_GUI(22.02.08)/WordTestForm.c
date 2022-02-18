@@ -8,7 +8,8 @@
 #include <string.h>
 #include <WinUser.h>
 #include <stdio.h>
-#include <Windows.h>
+#include <timeapi.h>
+#include <mmsystem.h>
 #pragma warning(disable : 4996)
 
 
@@ -25,7 +26,81 @@ BOOL CALLBACK WordTestFormProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 	return ret;
 }
 
+#if 0
+void CALLBACK WordTestFormTimerProc(UINT uTimerId, UINT message, DWORD dwUserData, DWORD dw1, DWORD dw2) {
+	HWND hWnd;
+	TCHAR remainSecondText[16];
+	Long remainedSeconds;
 
+	// 윈도우를 가져온다.
+	hWnd = FindWindow("#32770", "시험");
+
+	// 시간을 잰다.
+	remainedSeconds = (Long) GetProp(hWnd, "PROP_TIME");
+
+
+	// 남은 시간이 있으면 
+	if (remainedSeconds > 0) {
+		// 남은 시간을 쓴다.
+		sprintf(remainSecondText, "%d초", remainedSeconds);
+		SendMessage(GetDlgItem(hWnd, IDC_STATIC_REMAINSECONDS), WM_SETTEXT, (WPARAM)0, (LPARAM)remainSecondText);
+	}
+	else {
+		// 남은 시간이 없으면
+		// 메시지에 시간초과라고 쓴다.
+		SendMessage(GetDlgItem(hWnd, IDC_STATIC_MESSAGE), WM_SETTEXT, (WPARAM)0, (LPARAM)"시간 초과..!");
+		
+		// 뜻, 품사, 예시를 비활성화한다.
+		EnableWindow(GetDlgItem(hWnd, IDC_EDIT_MEANING), FALSE);
+		EnableWindow(GetDlgItem(hWnd, IDC_COMBO_CATEGORY), FALSE);
+		EnableWindow(GetDlgItem(hWnd, IDC_EDIT_EXAMPLE), FALSE);
+
+		// 다음 버튼을 비활성화한다.
+		EnableWindow(GetDlgItem(hWnd, IDC_BUTTON_NEXT), FALSE);
+
+		// 타이머를 없앤다.
+		timeKillEvent(uTimerId);
+	}
+
+
+}
+#endif
+
+VOID CALLBACK WaitOrTimerCallback(PVOID timer, BOOLEAN TimerOrWaitFired) {
+	HWND hWnd;
+	TCHAR remainSecondText[16];
+	Long remainedSeconds;
+
+	// 윈도우를 가져온다.
+	hWnd = FindWindow("#32770", "시험");
+
+	// 시간을 잰다.
+	remainedSeconds = (Long)GetProp(hWnd, "PROP_TIME");
+	remainedSeconds--;
+	SetProp(hWnd, "PROP_TIME", (HANDLE)remainedSeconds);
+
+		// 남은 시간을 쓴다.
+		sprintf(remainSecondText, "%d초", remainedSeconds);
+		SendMessage(GetDlgItem(hWnd, IDC_STATIC_REMAINSECONDS), WM_SETTEXT, (WPARAM)0, (LPARAM)remainSecondText);
+		
+
+}
+
+VOID CALLBACK OnTimeEndCallback() {
+	HWND hWnd = FindWindow("#32770", "시험");
+
+	// 남은 시간이 없으면
+		// 메시지에 시간초과라고 쓴다.
+	SendMessage(GetDlgItem(hWnd, IDC_STATIC_MESSAGE), WM_SETTEXT, (WPARAM)0, (LPARAM)"시간 초과..!");
+
+	// 뜻, 품사, 예시를 비활성화한다.
+	EnableWindow(GetDlgItem(hWnd, IDC_EDIT_MEANING), FALSE);
+	EnableWindow(GetDlgItem(hWnd, IDC_COMBO_CATEGORY), FALSE);
+	EnableWindow(GetDlgItem(hWnd, IDC_EDIT_EXAMPLE), FALSE);
+
+	// 다음 버튼을 비활성화한다.
+	EnableWindow(GetDlgItem(hWnd, IDC_BUTTON_NEXT), FALSE);
+}
 BOOL WordTestForm_OnCommand(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 	BOOL ret;
 
@@ -49,6 +124,9 @@ BOOL WordTestForm_OnInitDialog(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 	TCHAR categories[][16] = { "동사", "명사", "형용사", "부사", "접속사", "감탄사" };
 	Long i = 0;
 	TCHAR remainWordsCountText[64];
+	PHANDLE timer;
+	Long remainedSeconds = 20;
+
 
 	// 메인윈도우를 찾는다.
 	wordBookFormWindow = FindWindow("#32770", "단어장");
@@ -83,6 +161,14 @@ BOOL WordTestForm_OnInitDialog(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 
 		// 진행률을 쓴다.
 		SendMessage(GetDlgItem(hWnd, IDC_STATIC_PROGRESSRATE), WM_SETTEXT, (WPARAM)0, (LPARAM)"0.0%");
+
+		// 타이머를 설정한다.
+		//timer = timeSetEvent(1000, 5, WordTestFormTimerProc, (DWORD_PTR) NULL, TIME_PERIODIC);
+		CreateTimerQueueTimer(timer, NULL, WaitOrTimerCallback, NULL, 20 * 1000, 1000, WT_EXECUTEDEFAULT);
+		SetProp(hWnd, "PROP_TIMER", (HANDLE)timer);
+		SetProp(hWnd, "PROP_TIME", (HANDLE)20);
+		
+		
 
 		// 뜻 에디트 컨트롤을 포커스한다.
 		SetFocus(GetDlgItem(hWnd, IDC_EDIT_MEANING));
@@ -187,6 +273,7 @@ BOOL WordTestForm_OnExampleLostFocus(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 	double correctRate;
 	double progressRate;
 	TCHAR progressRateText[16];
+	MMRESULT timer;
 	WordIndexCardFile *wordIndexCardFile;
 	WordIndexCard *wordIndexCardLink;
 	WordBook *memorizedWordBook;
@@ -273,6 +360,9 @@ BOOL WordTestForm_OnExampleLostFocus(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 			sprintf(remainWordsCountText, "%d", wordBook->length);
 			SendMessage(GetDlgItem(hWnd, IDC_STATIC_REMAINWORDSCOUNT), WM_SETTEXT, (WPARAM)0, (LPARAM)remainWordsCountText);
 
+			// 타이머를 멈춘다.
+			timer = (MMRESULT)GetProp(hWnd, "PROP_TIMER");
+			DeleteTimerQueueEx(timer, NULL);
 
 			// 뜻, 품사, 예시 에디트 컨트롤을 비활성화한다.
 			EnableWindow(GetDlgItem(hWnd, IDC_EDIT_MEANING), FALSE);
@@ -407,6 +497,7 @@ BOOL WordTestForm_OnNextButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 	BOOL result;
 	Long number;
 	TCHAR numberText[64];
+	MMRESULT timer;
 
 	if (HIWORD(wParam) == BN_CLICKED) {
 
@@ -461,6 +552,12 @@ BOOL WordTestForm_OnNextButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 			EnableWindow(GetDlgItem(hWnd, IDC_COMBO_CATEGORY), TRUE);
 			EnableWindow(GetDlgItem(hWnd, IDC_EDIT_EXAMPLE), TRUE);
 
+			// 시간을 리셋한다.
+			SetProp(hWnd, "PROP_TIME", (HANDLE) 20);
+
+			// 시간을 잰다.
+			timeSetEvent(1000, 5, WordTestFormTimerProc, (DWORD_PTR) NULL, TIME_PERIODIC);
+
 			// 뜻 에디트 컨트롤을 포커스한다.
 			SetFocus(GetDlgItem(hWnd, IDC_EDIT_MEANING));
 		}
@@ -472,6 +569,10 @@ BOOL WordTestForm_OnNextButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 
 			// 철자를 지운다.
 			SendMessage(GetDlgItem(hWnd, IDC_STATIC_SPELLING), WM_SETTEXT, (WPARAM)0, (LPARAM)"");
+
+			// 시간을 멈춘다.
+			timer = (MMRESULT)GetProp(hWnd, "PROP_TIMER");
+			DeleteTimerQueueEx(timer, NULL);
 		}
 
 	}
@@ -496,6 +597,7 @@ BOOL WordTestForm_OnClose(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 	TCHAR spelling[48];
 	TCHAR category[16];
 	TCHAR meaning[64];
+	MMRESULT timer;
 
 	// 메인윈도우를 찾는다.
 	wordBookFormWindow = FindWindow("#32770", "단어장");
@@ -600,6 +702,10 @@ BOOL WordTestForm_OnClose(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 		SendMessage(GetDlgItem(wordBookFormWindow, IDC_STATIC_CATEGORY), WM_SETTEXT, (WPARAM)0, (LPARAM)"");
 		SendMessage(GetDlgItem(wordBookFormWindow, IDC_STATIC_EXAMPLE), WM_SETTEXT, (WPARAM)0, (LPARAM)"");
 	}
+
+	// 시간을 멈춘다.
+	timer = (MMRESULT) GetProp(hWnd, "PROP_TIMER");
+	timeKillEvent(timer);
 
 	// 윈도우를 닫는다.
 	RemoveProp(hWnd, "PROP_CORRECTWORDSCOUNT");
