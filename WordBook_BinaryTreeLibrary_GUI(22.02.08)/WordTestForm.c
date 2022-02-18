@@ -25,11 +25,14 @@ BOOL CALLBACK WordTestFormProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 	return ret;
 }
 
+
 BOOL WordTestForm_OnCommand(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 	BOOL ret;
 
 	switch (LOWORD(wParam)) {
-	case IDC_EDIT_EXAMPLE: ret = WordTestForm_OnExampleEditControlLostFocus(hWnd, wParam, lParam); break;
+	case IDC_EDIT_MEANING: ret = WordTestForm_OnMeaningLostFocus(hWnd, wParam, lParam); break;
+	case IDC_COMBO_CATEGORY: ret = WordTestForm_OnCategoryLostFocus(hWnd, wParam, lParam); break;
+	case IDC_EDIT_EXAMPLE: ret = WordTestForm_OnExampleLostFocus(hWnd, wParam, lParam); break;
 	case IDC_BUTTON_NEXT: ret = WordTestForm_OnNextButtonClicked(hWnd, wParam, lParam); break;
 	default: ret = FALSE; break;
 	}
@@ -57,7 +60,6 @@ BOOL WordTestForm_OnInitDialog(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 		wordLink = WordBook_First(wordBook);
 
 		// 순번을 쓴다.
-		number++;
 		sprintf(numberText, "%d", number);
 		SendMessage(GetDlgItem(hWnd, IDC_STATIC_NUMBER), WM_SETTEXT, (WPARAM)0, (LPARAM)numberText);
 		SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG)number);
@@ -79,6 +81,9 @@ BOOL WordTestForm_OnInitDialog(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 		sprintf(remainWordsCountText, "%d", wordBook->length);
 		SendMessage(GetDlgItem(hWnd, IDC_STATIC_REMAINWORDSCOUNT), WM_SETTEXT, (WPARAM)0, (LPARAM)remainWordsCountText);
 
+		// 진행률을 쓴다.
+		SendMessage(GetDlgItem(hWnd, IDC_STATIC_PROGRESSRATE), WM_SETTEXT, (WPARAM)0, (LPARAM)"0.0%");
+
 		// 뜻 에디트 컨트롤을 포커스한다.
 		SetFocus(GetDlgItem(hWnd, IDC_EDIT_MEANING));
 	}
@@ -92,8 +97,79 @@ BOOL WordTestForm_OnInitDialog(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 	return TRUE;
 }
 
+BOOL WordTestForm_OnMeaningLostFocus(HWND hWnd, WPARAM wParam, LPARAM lParam) {
+	HWND wordBookFormWindow;
+	TCHAR meaning[64];
+	WordBook *wordBook;
+	Word *wordLink;
+	BOOL meaningResult;
 
-BOOL WordTestForm_OnExampleEditControlLostFocus(HWND hWnd, WPARAM wParam, LPARAM lParam) {
+	if (HIWORD(wParam) == EN_KILLFOCUS) {
+
+		// 뜻을 읽는다.
+		SendMessage(GetDlgItem(hWnd, IDC_EDIT_MEANING), WM_GETTEXT, (WPARAM)sizeof(meaning), (LPARAM)meaning);
+
+		// 메인윈도우를 찾는다.
+		wordBookFormWindow = FindWindow("#32770", "단어장");
+
+		// 단어와 비교해 채점한다.
+		wordBook = (WordBook *)GetWindowLongPtr(wordBookFormWindow, GWLP_USERDATA);
+		wordLink = wordBook->current;
+		if (strcmp(wordLink->meaning, meaning) == 0) {
+			meaningResult = TRUE;
+		} else {
+			meaningResult = FALSE;
+		}
+
+			// 채점결과를 쓴다.
+		if (meaningResult == TRUE) {
+			SendMessage(GetDlgItem(hWnd, IDC_STATIC_MEANINGRESULT), WM_SETTEXT, (WPARAM)0, (LPARAM)"O");
+		} else {
+			SendMessage(GetDlgItem(hWnd, IDC_STATIC_MEANINGRESULT), WM_SETTEXT, (WPARAM)0, (LPARAM)"X");
+		}
+	}
+
+	return TRUE;
+}
+
+BOOL WordTestForm_OnCategoryLostFocus(HWND hWnd, WPARAM wParam, LPARAM lParam) {
+	HWND wordBookFormWindow;
+	TCHAR category[64];
+	WordBook *wordBook;
+	Word *wordLink;
+	BOOL categoryResult;
+
+	if (HIWORD(wParam) == CBN_KILLFOCUS) {
+
+		// 뜻을 읽는다.
+		SendMessage(GetDlgItem(hWnd, IDC_COMBO_CATEGORY), WM_GETTEXT, (WPARAM)sizeof(category), (LPARAM)category);
+
+		// 메인윈도우를 찾는다.
+		wordBookFormWindow = FindWindow("#32770", "단어장");
+
+		// 단어와 비교해 채점한다.
+		wordBook = (WordBook *)GetWindowLongPtr(wordBookFormWindow, GWLP_USERDATA);
+		wordLink = wordBook->current;
+		if (strcmp(wordLink->category, category) == 0) {
+			categoryResult = TRUE;
+		}
+		else {
+			categoryResult = FALSE;
+		}
+
+			// 채점결과를 쓴다.
+		if (categoryResult == TRUE) {
+			SendMessage(GetDlgItem(hWnd, IDC_STATIC_CATEGORYRESULT), WM_SETTEXT, (WPARAM)0, (LPARAM)"O");
+		}
+		else {
+			SendMessage(GetDlgItem(hWnd, IDC_STATIC_CATEGORYRESULT), WM_SETTEXT, (WPARAM)0, (LPARAM)"X");
+		}
+	}
+
+	return TRUE;
+}
+
+BOOL WordTestForm_OnExampleLostFocus(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 	HWND wordBookFormWindow;
 	TCHAR alphabet[2];
 	char wordAlphabet;
@@ -107,6 +183,10 @@ BOOL WordTestForm_OnExampleEditControlLostFocus(HWND hWnd, WPARAM wParam, LPARAM
 	Long correctWordsCount;
 	TCHAR correctWordsCountText[64];
 	TCHAR remainWordsCountText[64];
+	Long number;
+	double correctRate;
+	double progressRate;
+	TCHAR progressRateText[16];
 	WordIndexCardFile *wordIndexCardFile;
 	WordIndexCard *wordIndexCardLink;
 	WordBook *memorizedWordBook;
@@ -122,9 +202,6 @@ BOOL WordTestForm_OnExampleEditControlLostFocus(HWND hWnd, WPARAM wParam, LPARAM
 	BOOL meaningResult;
 	BOOL categoryResult;
 	BOOL exampleResult;
-	TCHAR meaningAnswer[68];
-	TCHAR categoryAnswer[20];
-	TCHAR exampleAnswer[68];
 
 	if (HIWORD(wParam) == EN_KILLFOCUS) {
 
@@ -141,19 +218,22 @@ BOOL WordTestForm_OnExampleEditControlLostFocus(HWND hWnd, WPARAM wParam, LPARAM
 		wordLink = wordBook->current;
 		if (strcmp(wordLink->meaning, meaning) == 0) {
 			meaningResult = TRUE;
-		} else {
+		}
+		else {
 			meaningResult = FALSE;
 		}
 
 		if (strcmp(wordLink->category, category) == 0) {
 			categoryResult = TRUE;
-		} else {
+		}
+		else {
 			categoryResult = FALSE;
 		}
 
 		if (strcmp(wordLink->example, example) == 0) {
 			exampleResult = TRUE;
-		} else {
+		}
+		else {
 			exampleResult = FALSE;
 		}
 
@@ -180,8 +260,6 @@ BOOL WordTestForm_OnExampleEditControlLostFocus(HWND hWnd, WPARAM wParam, LPARAM
 			wordLink = WordBook_Put(memorizedWordBook, word);
 
 			// 채점결과를 쓴다.
-			SendMessage(GetDlgItem(hWnd, IDC_STATIC_MEANINGRESULT), WM_SETTEXT, (WPARAM)0, (LPARAM)"O");
-			SendMessage(GetDlgItem(hWnd, IDC_STATIC_CATEGORYRESULT), WM_SETTEXT, (WPARAM)0, (LPARAM)"O");
 			SendMessage(GetDlgItem(hWnd, IDC_STATIC_EXAMPLERESULT), WM_SETTEXT, (WPARAM)0, (LPARAM)"O");
 
 			// 맞춘 개수를 쓴다.
@@ -194,6 +272,42 @@ BOOL WordTestForm_OnExampleEditControlLostFocus(HWND hWnd, WPARAM wParam, LPARAM
 			// 남은 단어 수를 쓴다.
 			sprintf(remainWordsCountText, "%d", wordBook->length);
 			SendMessage(GetDlgItem(hWnd, IDC_STATIC_REMAINWORDSCOUNT), WM_SETTEXT, (WPARAM)0, (LPARAM)remainWordsCountText);
+
+
+			// 뜻, 품사, 예시 에디트 컨트롤을 비활성화한다.
+			EnableWindow(GetDlgItem(hWnd, IDC_EDIT_MEANING), FALSE);
+			EnableWindow(GetDlgItem(hWnd, IDC_COMBO_CATEGORY), FALSE);
+			EnableWindow(GetDlgItem(hWnd, IDC_EDIT_EXAMPLE), FALSE);
+
+
+			// 정답률을 구한다.
+			number = (Long)GetWindowLongPtr(hWnd, GWLP_USERDATA);
+			if (number > 0) {
+				correctRate = correctWordsCount / number * 1.00;
+				// 정답률에 따라 메시지를 쓴다.
+				if (correctRate > 0.9) {
+					SendMessage(GetDlgItem(hWnd, IDC_STATIC_MESSAGE), WM_SETTEXT, (WPARAM)0, (LPARAM)"대단히 잘 하고 계시네요! 거의 모두 맞추고 있어요!");
+				}
+				else if (correctRate > 0.5) {
+
+				}
+				else {
+					SendMessage(GetDlgItem(hWnd, IDC_STATIC_MESSAGE), WM_SETTEXT, (WPARAM)0, (LPARAM)"어려운 싸움을 잘 이어나가고 계시네요! 좀 더 힘내세요!");
+				}
+			}
+			
+
+
+			// 진행정보를 쓴다.
+			progressRate = correctWordsCount / ((correctWordsCount + wordBook->length) * 1.00) * 100.0;
+			sprintf(progressRateText, "%.1f%%", progressRate);
+			SendMessage(GetDlgItem(hWnd, IDC_STATIC_PROGRESSRATE), WM_SETTEXT, (WPARAM)0, (LPARAM)progressRateText);
+			
+			if (wordBook->length < 10) {
+				SendMessage(GetDlgItem(hWnd, IDC_STATIC_MESSAGE), WM_SETTEXT, (WPARAM)0, (LPARAM)"거의 다 왔어요! 조금만 더 힘내세요..!");
+			}
+
+			
 
 			// 메인윈도우의 트리뷰에서 단어들 항목을 찾는다.
 			hTvRoot = (HTREEITEM)SendMessage(GetDlgItem(wordBookFormWindow, IDC_TREE_WORDS), TVM_GETNEXTITEM, (WPARAM)TVGN_ROOT, (LPARAM)0);
@@ -277,44 +391,8 @@ BOOL WordTestForm_OnExampleEditControlLostFocus(HWND hWnd, WPARAM wParam, LPARAM
 			}
 		}
 		else {
-			// 틀렸으면
-			// 틀린 항목의 채점결과와 답안을 쓴다.
-			if (meaningResult == FALSE) {
-				SendMessage(GetDlgItem(hWnd, IDC_STATIC_MEANINGRESULT), WM_SETTEXT, (WPARAM)0, (LPARAM)"X");
-				sprintf(meaningAnswer, "(%s)", wordLink->meaning);
-				SendMessage(GetDlgItem(hWnd, IDC_STATIC_MEANINGANSWER), WM_SETTEXT, (WPARAM)0, (LPARAM)meaningAnswer);
-			}
-			else {
-				SendMessage(GetDlgItem(hWnd, IDC_STATIC_MEANINGRESULT), WM_SETTEXT, (WPARAM)0, (LPARAM)"O");
-			}
-
-			if (categoryResult == FALSE) {
-				SendMessage(GetDlgItem(hWnd, IDC_STATIC_CATEGORYRESULT), WM_SETTEXT, (WPARAM)0, (LPARAM)"X");
-				sprintf(categoryAnswer, "(%s)", wordLink->category);
-				SendMessage(GetDlgItem(hWnd, IDC_STATIC_CATEGORYANSWER), WM_SETTEXT, (WPARAM)0, (LPARAM)categoryAnswer);
-			}
-			else {
-				SendMessage(GetDlgItem(hWnd, IDC_STATIC_CATEGORYRESULT), WM_SETTEXT, (WPARAM)0, (LPARAM)"O");
-			}
-
-			if (exampleResult == FALSE) {
-				SendMessage(GetDlgItem(hWnd, IDC_STATIC_EXAMPLERESULT), WM_SETTEXT, (WPARAM)0, (LPARAM)"X");
-				sprintf(exampleAnswer, "(%s)", wordLink->example);
-				SendMessage(GetDlgItem(hWnd, IDC_STATIC_EXAMPLEANSWER), WM_SETTEXT, (WPARAM)0, (LPARAM)exampleAnswer);
-			}
-			else {
-				SendMessage(GetDlgItem(hWnd, IDC_STATIC_EXAMPLERESULT), WM_SETTEXT, (WPARAM)0, (LPARAM)"O");
-			}
+			SendMessage(GetDlgItem(hWnd, IDC_STATIC_EXAMPLERESULT), WM_SETTEXT, (WPARAM)0, (LPARAM)"X");
 		}
-
-		// 뜻, 품사, 예시 에디트 컨트롤을 비활성화한다.
-		EnableWindow(GetDlgItem(hWnd, IDC_EDIT_MEANING), FALSE);
-		EnableWindow(GetDlgItem(hWnd, IDC_COMBO_CATEGORY), FALSE);
-		EnableWindow(GetDlgItem(hWnd, IDC_EDIT_EXAMPLE), FALSE);
-
-		// 다음 버튼을 포커스한다.
-		SetFocus(GetDlgItem(hWnd, IDC_BUTTON_NEXT));
-
 	}
 
 	return TRUE;
@@ -388,7 +466,8 @@ BOOL WordTestForm_OnNextButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 		}
 		else {
 			// 메인윈도우의 단어장에 단어가 없으면
-			// 메시를 쓴다.
+			
+			// 메시지를 쓴다.
 			SendMessage(GetDlgItem(hWnd, IDC_STATIC_MESSAGE), WM_SETTEXT, (WPARAM)0, (LPARAM)"대단하시네요! 모든 단어를 완벽히 외우셨군요!");
 
 			// 철자를 지운다.
