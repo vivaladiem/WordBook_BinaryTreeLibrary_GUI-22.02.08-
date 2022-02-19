@@ -4,6 +4,7 @@
 #include <Windows.h>
 
 BOOL CALLBACK WordTestFormProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+void CALLBACK WordTestFormTimerProc(UINT uTimerId, UINT message, DWORD dwUserData, DWORD dw1, DWORD dw2);
 BOOL WordTestForm_OnInitDialog(HWND hWnd, WPARAM wParam, LPARAM lParam);
 BOOL WordTestForm_OnCommand(HWND hWnd, WPARAM wParam, LPARAM lParam);
 BOOL WordtestForm_OnTimerTick(HWND hWnd, WPARAM wParam, LPARAM lParam);
