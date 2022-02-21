@@ -41,7 +41,7 @@ BOOL PuttingForm_OnInitDialog(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 
 	// 품사 개수만큼 품사 콤보박스에 목록을 추가한다.
 	while (i < sizeof(categories) / sizeof(categories[0])) {
-		SendMessage(GetDlgItem(hWnd, IDC_COMBO_CATEGORY), CB_ADDSTRING, (WPARAM)0, (LPARAM)categories[i]);
+		SendMessage(GetDlgItem(hWnd, IDC_EDIT_CATEGORY), CB_ADDSTRING, (WPARAM)0, (LPARAM)categories[i]);
 		i++;
 	}
 
@@ -93,7 +93,7 @@ BOOL PuttingForm_OnSpellingLostFocus(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 			if (low <= high) {
 				wordLink = WordIndexCard_GetAt(wordIndexCardLink, middle);
 				SendMessage(GetDlgItem(hWnd, IDC_EDIT_MEANING), WM_SETTEXT, (WPARAM)0, (LPARAM)wordLink->meaning);
-				SendMessage(GetDlgItem(hWnd, IDC_COMBO_CATEGORY), WM_SETTEXT, (WPARAM)0, (LPARAM)wordLink->category);
+				SendMessage(GetDlgItem(hWnd, IDC_EDIT_CATEGORY), WM_SETTEXT, (WPARAM)0, (LPARAM)wordLink->category);
 				SendMessage(GetDlgItem(hWnd, IDC_EDIT_EXAMPLE), WM_SETTEXT, (WPARAM)0, (LPARAM)wordLink->example);
 			}
 		}
@@ -128,7 +128,7 @@ BOOL PuttingForm_OnPutButtonClicked(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 		// 단어를 읽는다.
 		SendMessage(GetDlgItem(hWnd, IDC_EDIT_SPELLING), WM_GETTEXT, (WPARAM)48, (LPARAM)word.spelling);
 		SendMessage(GetDlgItem(hWnd, IDC_EDIT_MEANING), WM_GETTEXT, (WPARAM)64, (LPARAM)word.meaning);
-		SendMessage(GetDlgItem(hWnd, IDC_COMBO_CATEGORY), WM_GETTEXT, (WPARAM)16, (LPARAM)word.category);
+		SendMessage(GetDlgItem(hWnd, IDC_EDIT_CATEGORY), WM_GETTEXT, (WPARAM)16, (LPARAM)word.category);
 		SendMessage(GetDlgItem(hWnd, IDC_EDIT_EXAMPLE), WM_GETTEXT, (WPARAM)64, (LPARAM)word.example);
 
 		// 메인 윈도우를 찾는다.
